@@ -11,16 +11,24 @@ interface Post {
     client: number;
 }
 
+interface Format {
+    id: number;
+    name: string;
+    description: string;
+    platform: string;
+}
+
 interface KanbanColumnProps {
     date: string;
     dayName: string;
     posts: Post[];
+    formats: Format[];
     onMovePost: (id: number, date: string) => void;
     onEdit: (post: Post) => void;
     onDelete: (post: Post) => void;
 }
 
-export default function KanbanColumn({ date, dayName, posts, onMovePost, onEdit, onDelete }: KanbanColumnProps) {
+export default function KanbanColumn({ date, dayName, posts, formats, onMovePost, onEdit, onDelete }: KanbanColumnProps) {
     const [{ isOver }, drop] = useDrop(() => ({
         accept: "POST",
         drop: (item: { id: number; date: string }) => {
@@ -55,7 +63,7 @@ export default function KanbanColumn({ date, dayName, posts, onMovePost, onEdit,
 
             <div className="flex-1 p-3 overflow-y-auto custom-scrollbar">
                 {posts.map((post) => (
-                    <PostCard key={post.id} post={post} onEdit={onEdit} onDelete={onDelete} />
+                    <PostCard key={post.id} post={post} formats={formats} onEdit={onEdit} onDelete={onDelete} />
                 ))}
             </div>
         </div>

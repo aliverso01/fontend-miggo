@@ -22,6 +22,8 @@ import { ScrollToTop } from "./components/common/ScrollToTop";
 import Briefing from "./pages/Briefing/Briefing";
 import ProtectedRoute from "./components/ProtectedRoute";
 import Home from "./pages/Dashboard/Home";
+import EditorialCalendar from "./pages/EditorialCalendar/EditorialCalendar";
+import HistoryList from "./pages/History/HistoryList";
 
 export default function App() {
   return (
@@ -40,6 +42,8 @@ export default function App() {
               <Route path="/briefing" element={<Briefing />} />
               <Route path="/content" element={<ContentKanban />} />
               <Route path="/calendar" element={<Calendar />} />
+              <Route path="/editorial-calendar" element={<EditorialCalendar />} />
+              <Route path="/history" element={<HistoryList />} />
               <Route path="/blank" element={<Blank />} />
 
               {/* Forms */}

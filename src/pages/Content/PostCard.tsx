@@ -4,6 +4,13 @@ import { MoreDotIcon, PencilIcon, TrashBinIcon } from "../../icons";
 import { Dropdown } from "../../components/ui/dropdown/Dropdown";
 import { DropdownItem } from "../../components/ui/dropdown/DropdownItem";
 
+interface Format {
+    id: number;
+    name: string;
+    description: string;
+    platform: string;
+}
+
 interface Post {
     id: number;
     subject: string;
@@ -13,16 +20,18 @@ interface Post {
     media: string | null;
     client: number;
     status?: number;
+    post_format?: number;
 }
 
 interface PostCardProps {
     post: Post;
+    formats?: Format[];
     movePost?: (id: number, date: string) => void;
     onEdit: (post: Post) => void;
     onDelete: (post: Post) => void;
 }
 
-export default function PostCard({ post, onEdit, onDelete }: PostCardProps) {
+export default function PostCard({ post, formats, onEdit, onDelete }: PostCardProps) {
     const ref = useRef<HTMLDivElement>(null);
     const [isDropdownOpen, setIsDropdownOpen] = useState(false);
 
@@ -54,6 +63,9 @@ export default function PostCard({ post, onEdit, onDelete }: PostCardProps) {
     };
 
     const statusInfo = getStatusLabel(post.status);
+    const formatName = formats?.find(f => f.id === post.post_format)?.name;
+    const platformName = formats?.find(f => f.id === post.post_format)?.platform;
+
 
     return (
         <div
@@ -96,6 +108,16 @@ export default function PostCard({ post, onEdit, onDelete }: PostCardProps) {
                     <img src={post.media} alt="Post media" className="object-cover w-full h-full" />
                 </div>
             )}
+
+            {/* Format Badge */}
+            {(formatName || platformName) && (
+                <div className="mb-2 flex gap-1">
+                    <span className="text-[10px] uppercase font-bold text-gray-500 bg-gray-100 dark:bg-gray-700 dark:text-gray-400 px-1.5 py-0.5 rounded">
+                        {platformName && formatName ? `${platformName} - ${formatName}` : (platformName || formatName)}
+                    </span>
+                </div>
+            )}
+
             <h4 className="mb-1 text-sm font-semibold text-gray-800 dark:text-white/90 pr-6">
                 {post.subject}
             </h4>

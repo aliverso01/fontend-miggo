@@ -14,7 +14,7 @@ import { useModal } from "../../hooks/useModal";
 import { Modal } from "../../components/ui/modal";
 import Input from "../../components/form/input/InputField";
 import Label from "../../components/form/Label";
-import { PencilIcon, TrashBinIcon, PlusIcon } from "../../icons";
+import { PencilIcon, TrashBinIcon, PlusIcon, CalenderIcon } from "../../icons";
 
 interface Client {
     id: number;
@@ -182,6 +182,8 @@ export default function ClientsList() {
                     </Button>
                 </div>
 
+                {error && <div className="p-4 mb-4 text-sm text-red-800 rounded-lg bg-red-50 dark:bg-gray-800 dark:text-red-400" role="alert">{error}</div>}
+
                 <div className="overflow-hidden rounded-xl border border-gray-200 bg-white dark:border-white/[0.05] dark:bg-white/[0.03]">
                     <div className="max-w-full overflow-x-auto">
                         <Table>
@@ -205,10 +207,13 @@ export default function ClientsList() {
                                         <TableCell className="px-5 py-4 text-gray-500 dark:text-gray-400">{client.phone}</TableCell>
                                         <TableCell className="px-5 py-4 text-gray-500 dark:text-gray-400">
                                             <div className="flex items-center gap-2">
-                                                <button onClick={() => onEditClick(client)} className="text-gray-500 hover:text-brand-500 dark:text-gray-400 dark:hover:text-brand-400">
+                                                <Link to={`/editorial-calendar?client_id=${client.id}`} className="text-gray-500 hover:text-brand-500 dark:text-gray-400 dark:hover:text-brand-400" title="Calendário Editorial">
+                                                    <CalenderIcon className="size-5" />
+                                                </Link>
+                                                <button onClick={() => onEditClick(client)} className="text-gray-500 hover:text-brand-500 dark:text-gray-400 dark:hover:text-brand-400" title="Editar">
                                                     <PencilIcon className="size-5" />
                                                 </button>
-                                                <button onClick={() => onDeleteClick(client)} className="text-gray-500 hover:text-error-500 dark:text-gray-400 dark:hover:text-error-400">
+                                                <button onClick={() => onDeleteClick(client)} className="text-gray-500 hover:text-error-500 dark:text-gray-400 dark:hover:text-error-400" title="Excluir">
                                                     <TrashBinIcon className="size-5" />
                                                 </button>
                                             </div>
@@ -224,10 +229,10 @@ export default function ClientsList() {
                         </Table>
                     </div>
                 </div>
-            </div>
+            </div >
 
             {/* Add Modal */}
-            <Modal isOpen={isAddOpen} onClose={closeAddModal} className="max-w-[600px] m-4">
+            < Modal isOpen={isAddOpen} onClose={closeAddModal} className="max-w-[600px] m-4" >
                 <div className="w-full bg-white rounded-2xl p-6 dark:bg-gray-900">
                     <h3 className="text-lg font-semibold text-gray-800 dark:text-white mb-4">Novo Cliente</h3>
                     <form onSubmit={handleAddSubmit} className="space-y-4">
@@ -253,10 +258,10 @@ export default function ClientsList() {
                         </div>
                     </form>
                 </div>
-            </Modal>
+            </Modal >
 
             {/* Edit Modal */}
-            <Modal isOpen={isEditOpen} onClose={closeEditModal} className="max-w-[600px] m-4">
+            < Modal isOpen={isEditOpen} onClose={closeEditModal} className="max-w-[600px] m-4" >
                 <div className="w-full bg-white rounded-2xl p-6 dark:bg-gray-900">
                     <h3 className="text-lg font-semibold text-gray-800 dark:text-white mb-4">Editar Cliente</h3>
                     <form onSubmit={handleEditSubmit} className="space-y-4">
@@ -278,10 +283,10 @@ export default function ClientsList() {
                         </div>
                     </form>
                 </div>
-            </Modal>
+            </Modal >
 
             {/* Delete Modal */}
-            <Modal isOpen={isDeleteOpen} onClose={closeDeleteModal} className="max-w-[400px] m-4">
+            < Modal isOpen={isDeleteOpen} onClose={closeDeleteModal} className="max-w-[400px] m-4" >
                 <div className="w-full bg-white rounded-2xl p-6 dark:bg-gray-900">
                     <h3 className="text-lg font-semibold text-gray-800 dark:text-white mb-4">Excluir Cliente</h3>
                     <p className="text-gray-500 mb-6">Tem certeza que deseja excluir o cliente <strong>{currentClient?.name}</strong>? Esta ação não pode ser desfeita.</p>
@@ -290,7 +295,7 @@ export default function ClientsList() {
                         <Button onClick={handleDeleteSubmit} className="bg-error-500 hover:bg-error-600 text-white">Excluir</Button>
                     </div>
                 </div>
-            </Modal>
+            </Modal >
         </>
     );
 }

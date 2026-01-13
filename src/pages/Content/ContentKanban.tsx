@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useSearchParams } from "react-router-dom";
 import { DndProvider } from "react-dnd";
 import { HTML5Backend } from "react-dnd-html5-backend";
@@ -14,6 +14,7 @@ import Select from "../../components/form/Select";
 import KanbanColumn from "./KanbanColumn";
 import CreatePostModal from "./CreatePostModal";
 import EditPostModal from "./EditPostModal";
+import { useAuthContext } from "../../context/AuthContext";
 
 interface Post {
     id: number;
@@ -25,11 +26,14 @@ interface Post {
     client: number;
     post_format?: number;
     status?: number;
+    calendar_id?: number | null;
+    editorial_calendar?: number | null;
 }
 
 interface Client {
     id: number;
     name: string;
+    user: number;
 }
 
 export interface Format {
@@ -54,6 +58,8 @@ export interface PostMediaLink {
 }
 
 export default function ContentKanban() {
+    const { user } = useAuthContext();
+    const isSyncing = useRef(false);
     const [posts, setPosts] = useState<Post[]>([]);
     const [clients, setClients] = useState<Client[]>([]);
     const [formats, setFormats] = useState<Format[]>([]);
@@ -144,31 +150,6 @@ export default function ContentKanban() {
         });
     };
 
-    useEffect(() => {
-        fetchClients();
-        fetchFormats();
-        fetchMedias();
-        fetchPostMedias();
-    }, []);
-
-    // Effect to select first client if none selected and no URL param (optional, or kept in fetchClients)
-    // Actually, let's modify fetchClients to respect existing state if valid
-
-
-    useEffect(() => {
-        // Sync state to URL
-        const params: any = {};
-        if (selectedClient) params.client_id = String(selectedClient);
-        if (currentDate) params.date = currentDate.toISOString().split('T')[0];
-        setSearchParams(params);
-
-        if (selectedClient) {
-            fetchPosts();
-        } else {
-            setPosts([]);
-        }
-    }, [selectedClient, currentDate]); // Removed setSearchParams from dependency to avoid loop if object ref changes (though hook usually stable)
-
     const fetchFormats = async () => {
         try {
             const response = await fetch("/api/v1/post/format/list/", {
@@ -177,7 +158,6 @@ export default function ContentKanban() {
             if (response.ok) {
                 const data = await response.json();
                 setFormats(data);
-                // Default format? User didn't specify, likely user selects
             }
         } catch (error) {
             console.error("Error fetching formats:", error);
@@ -190,16 +170,33 @@ export default function ContentKanban() {
                 headers: { Authorization: API_KEY },
             });
             if (response.ok) {
-                const data = await response.json();
+                let data: Client[] = await response.json();
+
+                // RESTRICT VIEW: If user is 'client', only show their own client
+                if (user?.role === 'client') {
+                    data = data.filter(c => c.user === user.id);
+                }
+
                 setClients(data);
 
-                // If no client selected yet (and not in URL), select the first one
-                if (!selectedClient && data.length > 0) {
-                    // Check if URL has it (in case state init happened before)
+                // Auto-selection logic
+                if (data.length > 0) {
+                    // Validating current selection or default
                     const clientParam = searchParams.get('client_id');
-                    if (!clientParam) {
+                    let targetId = selectedClient || (clientParam ? Number(clientParam) : null);
+
+                    // Verify target exists in available clients
+                    const exists = data.find(c => c.id === targetId);
+
+                    if (exists) {
+                        if (targetId !== selectedClient) setSelectedClient(exists.id);
+                    } else {
+                        // Default to first available
                         setSelectedClient(data[0].id);
                     }
+                } else {
+                    // No clients access
+                    setSelectedClient("");
                 }
             }
         } catch (error) {
@@ -207,8 +204,21 @@ export default function ContentKanban() {
         }
     };
 
+    useEffect(() => {
+        if (user) {
+            fetchClients();
+            fetchFormats();
+            fetchMedias();
+            fetchPostMedias();
+        }
+    }, [user]);
+
+    // Effect to select first client if none selected and no URL param (optional, or kept in fetchClients)
+    // Actually, let's modify fetchClients to respect existing state if valid
+
+
     const fetchPosts = async () => {
-        if (!selectedClient) return;
+        if (!selectedClient) return [];
         try {
             const startDate = weekDates[0];
             const endDate = weekDates[6];
@@ -224,11 +234,129 @@ export default function ContentKanban() {
             if (response.ok) {
                 const data = await response.json();
                 setPosts(data);
+                return data;
             }
         } catch (error) {
             console.error("Error fetching posts:", error);
         }
+        return [];
     };
+
+    const syncEditorialCalendar = async (currentPosts: Post[]) => {
+        if (!selectedClient || isSyncing.current) return;
+        isSyncing.current = true;
+
+        try {
+            // 1. Fetch Editorial Calendar
+            const response = await fetch(`/api/v1/editorial-calendar/list/?client_id=${selectedClient}`, {
+                headers: { Authorization: API_KEY },
+            });
+
+            if (!response.ok) return;
+            const calendarRules: any[] = await response.json();
+
+            if (calendarRules.length === 0) return;
+
+            const daysMap = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
+            const postsToCreate: any[] = [];
+
+            // 2. Iterate through current week's dates
+            for (const dateStr of weekDates) {
+                const [y, m, d] = dateStr.split('-').map(Number);
+                const dateObj = new Date(y, m - 1, d);
+                const dayName = daysMap[dateObj.getDay()];
+
+                // Find rule for this day
+                const rule = calendarRules.find(r => r.week_day === dayName && r.active);
+
+                if (rule) {
+                    // Iterate over formats in the rule
+                    for (const formatId of rule.formats) {
+                        // Robust existence check
+                        const exists = currentPosts.some(p => {
+                            const sameDate = p.post_date === dateStr || (p.post_date && p.post_date.startsWith(dateStr));
+                            const sameFormat = Number(p.post_format) === Number(formatId);
+                            const sameSubject = p.subject === rule.subject;
+
+                            // Check by ID if available, otherwise by Subject match
+                            const sameCalendarId = (p.calendar_id && Number(p.calendar_id) === Number(rule.id)) ||
+                                (p.editorial_calendar && Number(p.editorial_calendar) === Number(rule.id));
+
+                            return sameDate && sameFormat && (sameCalendarId || sameSubject);
+                        });
+
+                        if (!exists) {
+                            // Check if we already staged this for creation in this batch check to prevent duplicates within same loop
+                            const alreadyStaged = postsToCreate.some(p =>
+                                p.post_date === dateStr &&
+                                p.post_format === formatId &&
+                                p.subject === rule.subject
+                            );
+
+                            if (!alreadyStaged) {
+                                postsToCreate.push({
+                                    client: selectedClient,
+                                    subject: rule.subject,
+                                    content: "Conteúdo gerado via calendário",
+                                    post_date: dateStr,
+                                    post_time: rule.time,
+                                    status: 1, // Scheduled
+                                    post_format: formatId,
+                                    calendar_id: rule.id
+                                });
+                            }
+                        }
+                    }
+                }
+            }
+
+            if (postsToCreate.length > 0) {
+                const createResponse = await fetch("/api/v1/post/create/", {
+                    method: "POST",
+                    headers: {
+                        "Content-Type": "application/json",
+                        Authorization: API_KEY,
+                    },
+                    body: JSON.stringify(postsToCreate),
+                });
+
+                if (createResponse.ok) {
+                    await fetchPosts();
+                } else {
+                    console.error("Failed to auto-create posts:", await createResponse.text());
+                }
+            }
+
+        } catch (error) {
+            console.error("Error syncing editorial calendar:", error);
+        } finally {
+            // Add a small delay to ensure processing completes before allowing another sync
+            setTimeout(() => {
+                isSyncing.current = false;
+            }, 1000);
+        }
+    };
+
+    useEffect(() => {
+        // Sync state to URL
+        const params: any = {};
+        if (selectedClient) params.client_id = String(selectedClient);
+        if (currentDate) params.date = currentDate.toISOString().split('T')[0];
+        setSearchParams(params);
+
+        const loadData = async () => {
+            if (selectedClient) {
+                const data = await fetchPosts();
+                if (data) {
+                    await syncEditorialCalendar(data);
+                }
+            } else {
+                setPosts([]);
+            }
+        };
+        loadData();
+
+    }, [selectedClient, currentDate]); // Removed setSearchParams from dependency to avoid loop if object ref changes (though hook usually stable)
 
     const fetchMedias = async () => {
         try {
@@ -462,7 +590,16 @@ export default function ContentKanban() {
 
     const handleUpdatePost = async (e: React.FormEvent) => {
         e.preventDefault();
-        await performUpdatePost(editFormData);
+
+        let data = { ...editFormData };
+        // If post is currently Scheduled (1) and user is saving (implied edit),
+        // and user didn't explicitly change status to something else,
+        // revert to Draft (2).
+        if (currentPost?.status === 1 && Number(data.status) === 1) {
+            data.status = 2;
+        }
+
+        await performUpdatePost(data);
     };
 
     const handleStatusAction = async (status: number) => {
@@ -514,16 +651,18 @@ export default function ContentKanban() {
 
             <div className="flex flex-col h-[calc(100vh-200px)]">
                 <div className="flex justify-between items-center mb-6">
-                    <div className="w-64 relative z-50">
-                        <Label>Cliente</Label>
-                        <Select
-                            options={clients.map(c => ({ value: String(c.id), label: c.name }))}
-                            placeholder="Selecione..."
-                            onChange={(val) => setSelectedClient(Number(val))}
-                            defaultValue={String(selectedClient)}
-                            className="mt-1"
-                        />
-                    </div>
+                    {user?.role !== 'client' && (
+                        <div className="w-64 relative z-50">
+                            <Label>Cliente</Label>
+                            <Select
+                                options={clients.map(c => ({ value: String(c.id), label: c.name }))}
+                                placeholder="Selecione..."
+                                onChange={(val) => setSelectedClient(Number(val))}
+                                defaultValue={String(selectedClient)}
+                                className="mt-1"
+                            />
+                        </div>
+                    )}
                 </div>
 
                 <div className="flex items-center gap-2">
@@ -553,6 +692,7 @@ export default function ContentKanban() {
                             date={date}
                             dayName={dayNames[index]}
                             posts={posts.filter(p => p.post_date === date && (selectedClient ? p.client === selectedClient : true))}
+                            formats={formats} // Pass formats
                             onMovePost={movePost}
                             onEdit={openEditPost}
                             onDelete={openDeletePost}

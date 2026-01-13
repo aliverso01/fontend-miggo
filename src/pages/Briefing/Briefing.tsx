@@ -5,6 +5,7 @@ import Button from "../../components/ui/button/Button";
 import Input from "../../components/form/input/InputField";
 import { AngleLeftIcon, AngleRightIcon, CheckLineIcon, PencilIcon } from "../../icons";
 import Select from "../../components/form/Select";
+import { useAuthContext } from "../../context/AuthContext";
 
 const API_KEY = "Api-Key vxQRQtgZ.M9ppHygHa4hS32hnkTshmm1kxTD3qCSS";
 
@@ -26,9 +27,11 @@ interface MetaResponse {
 interface Client {
     id: number;
     name: string;
+    user: number;
 }
 
 export default function Briefing() {
+    const { user } = useAuthContext();
     const [searchParams, setSearchParams] = useSearchParams();
     const [currentStep, setCurrentStep] = useState(0);
     const [responses, setResponses] = useState<{ [key: string]: string }>({});
@@ -50,13 +53,13 @@ export default function Briefing() {
 
     // Load Clients (for Admin selector)
     useEffect(() => {
-        fetchClients();
-    }, []);
+        if (user) fetchClients();
+    }, [user]);
 
     // Load Answers when client changes
     useEffect(() => {
         if (selectedClient) {
-            fetchClientMeta(selectedClient);
+            fetchClientMeta(selectedClient as number);
             setSearchParams({ client_id: String(selectedClient) });
         } else {
             setResponses({});
@@ -70,11 +73,29 @@ export default function Briefing() {
                 headers: { Authorization: API_KEY }
             });
             if (res.ok) {
-                const data = await res.json();
+                let data: Client[] = await res.json();
+
+                if (user?.role === 'client') {
+                    data = data.filter(c => c.user === user.id);
+                }
+
                 setClients(data);
+
                 if (!selectedClient && data.length > 0) {
                     const p = searchParams.get("client_id");
-                    if (!p) setSelectedClient(data[0].id);
+                    if (p) {
+                        const exists = data.find(c => c.id === Number(p));
+                        // If param exists in allowed list, keep it (or select it if not selected)
+                        // But we are in !selectedClient block, so we just select it.
+                        if (exists) {
+                            setSelectedClient(Number(p));
+                        } else {
+                            // Fallback
+                            setSelectedClient(data[0].id);
+                        }
+                    } else {
+                        setSelectedClient(data[0].id);
+                    }
                 }
             }
         } catch (e) {
@@ -429,17 +450,19 @@ export default function Briefing() {
             <div className="w-full max-w-3xl flex justify-between items-center mb-8">
                 <h1 className="text-2xl font-bold text-gray-800 dark:text-white">Briefing</h1>
 
-                <div className="flex items-center gap-2">
-                    <span className="text-sm text-gray-500">Cliente:</span>
-                    <div className="w-64 relative z-50">
-                        <Select
-                            options={clients.map(c => ({ value: String(c.id), label: c.name }))}
-                            placeholder="Selecione um cliente"
-                            onChange={(val) => setSelectedClient(Number(val))}
-                            defaultValue={String(selectedClient)}
-                        />
+                {user?.role !== 'client' && (
+                    <div className="flex items-center gap-2">
+                        <span className="text-sm text-gray-500">Cliente:</span>
+                        <div className="w-64 relative z-50">
+                            <Select
+                                options={clients.map(c => ({ value: String(c.id), label: c.name }))}
+                                placeholder="Selecione um cliente"
+                                onChange={(val) => setSelectedClient(Number(val))}
+                                defaultValue={String(selectedClient)}
+                            />
+                        </div>
                     </div>
-                </div>
+                )}
             </div>
 
             {viewMode ? renderSummary() : renderWizard()}

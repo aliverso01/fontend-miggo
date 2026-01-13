@@ -1,32 +1,191 @@
 import { useEffect, useState } from "react";
-import { GroupIcon, ListIcon } from "../../icons";
+import { Link } from "react-router-dom";
+import ReactApexChart from "react-apexcharts";
+import { ApexOptions } from "apexcharts";
+import { GroupIcon, ListIcon, TimeIcon, ArrowRightIcon, CalenderIcon } from "../../icons";
 import PageMeta from "../../components/common/PageMeta";
+import { useAuthContext } from "../../context/AuthContext";
+
+const STATUS_LABELS: Record<number, string> = {
+  1: "A CRIAR",
+  2: "RASCUNHO",
+  3: "AGENDADO",
+  4: "ENVIADO",
+  5: "PENDENTE",
+  6: "PAUSADO",
+  7: "FINALIZADO",
+  8: "APROVADO",
+  9: "ENVIANDO",
+  10: "PUBLICADO",
+  11: "CANCELADO"
+};
+
+interface HistoryItem {
+  id: number;
+  action: string;
+  model_name: string;
+  object_id: string;
+  description: string;
+  created_at: string;
+}
+
+interface EditorialRule {
+  id: number;
+  client: number;
+  week_day: string;
+  subject: string;
+  time: string;
+  active: boolean;
+}
+
+interface Client {
+  id: number;
+  name: string;
+  user: number;
+}
 
 export default function Home() {
+  const { user } = useAuthContext();
   const [clientCount, setClientCount] = useState<number>(0);
+  const [clients, setClients] = useState<Client[]>([]);
   const [postCount, setPostCount] = useState<number>(0);
   const [loading, setLoading] = useState<boolean>(true);
+  const [history, setHistory] = useState<HistoryItem[]>([]);
+  const [editorialRules, setEditorialRules] = useState<EditorialRule[]>([]);
+  const [briefingData, setBriefingData] = useState<Record<string, string>>({});
+  const [chartData, setChartData] = useState<{ series: any[], options: ApexOptions }>({
+    series: [],
+    options: {}
+  });
 
   const API_KEY = "Api-Key vxQRQtgZ.M9ppHygHa4hS32hnkTshmm1kxTD3qCSS";
 
   useEffect(() => {
     const fetchData = async () => {
+      // Wait for user to be loaded to apply role filters
+      if (!user) return;
+
       setLoading(true);
       try {
-        const [clientsRes, postsRes] = await Promise.all([
+        const [clientsRes, postsRes, historyRes, editorialRes] = await Promise.all([
           fetch("/api/v1/client/list/", { headers: { Authorization: API_KEY } }),
-          fetch("/api/v1/post/list/", { headers: { Authorization: API_KEY } })
+          fetch("/api/v1/post/list/", { headers: { Authorization: API_KEY } }),
+          fetch("/api/v1/history/list/", { headers: { Authorization: API_KEY } }),
+          fetch("/api/v1/editorial-calendar/list/", { headers: { Authorization: API_KEY } })
         ]);
 
+        let allClients: Client[] = [];
         if (clientsRes.ok) {
-          const clients = await clientsRes.json();
-          setClientCount(clients.length);
+          allClients = await clientsRes.json();
+          setClientCount(allClients.length);
+          setClients(allClients);
         }
 
         if (postsRes.ok) {
-          const posts = await postsRes.json();
+          let posts = await postsRes.json();
+
+          // Filter for Client Role
+          if (user.role === 'client') {
+            const myClient = allClients.find(c => c.user === user.id);
+            if (myClient) {
+              posts = posts.filter((p: any) => p.client === myClient.id);
+            } else {
+              posts = [];
+            }
+          }
+
           setPostCount(posts.length);
+
+          // Process Chart Data
+          const statusCounts: Record<number, number> = {};
+
+          posts.forEach((post: any) => {
+            const status = post.status || 0;
+            // Exclude ID 1 as requested
+            if (status !== 1) {
+              statusCounts[status] = (statusCounts[status] || 0) + 1;
+            }
+          });
+
+          // Prepare data for chart
+          const categories: string[] = [];
+          const data: number[] = [];
+
+          // Sort by label key or specific order? Let's iterate predefined keys to keep order or just populated ones.
+          // Iterating all relevant keys (2-11) to show even 0 counts? Or just populated?
+          // Usually better to show populated or all common ones. Let's show all except 1.
+          Object.keys(STATUS_LABELS).map(Number).forEach(key => {
+            if (key !== 1) {
+              categories.push(STATUS_LABELS[key]);
+              data.push(statusCounts[key] || 0);
+            }
+          });
+
+          setChartData({
+            series: [{
+              name: "Posts",
+              data: data
+            }],
+            options: {
+              chart: {
+                type: 'bar',
+                height: 350,
+                toolbar: { show: false }
+              },
+              plotOptions: {
+                bar: {
+                  horizontal: false,
+                  columnWidth: '55%',
+                  borderRadius: 4
+                },
+              },
+              dataLabels: {
+                enabled: false
+              },
+              stroke: {
+                show: true,
+                width: 2,
+                colors: ['transparent']
+              },
+              xaxis: {
+                categories: categories,
+                axisBorder: { show: false },
+                axisTicks: { show: false },
+              },
+              yaxis: {
+                title: {
+                  text: 'Quantidade'
+                }
+              },
+              fill: {
+                opacity: 1
+              },
+              tooltip: {
+                y: {
+                  formatter: function (val) {
+                    return val + " posts"
+                  }
+                }
+              },
+              colors: ['#4F46E5'], // Indigo-600
+              grid: {
+                borderColor: '#f1f1f1',
+              }
+            }
+          });
         }
+
+        if (historyRes.ok) {
+          const historyData = await historyRes.json();
+          // Take top 5 recent
+          setHistory(historyData.slice(0, 5));
+        }
+
+        if (editorialRes.ok) {
+          const rules = await editorialRes.json();
+          setEditorialRules(rules);
+        }
+
       } catch (error) {
         console.error("Error fetching dashboard data:", error);
       } finally {
@@ -35,7 +194,46 @@ export default function Home() {
     };
 
     fetchData();
-  }, []);
+  }, [user]);
+
+  useEffect(() => {
+    const fetchBriefing = async () => {
+      if (user?.role === 'client' && clients.length > 0) {
+        const myClient = clients.find(c => c.user === user.id);
+        if (myClient) {
+          try {
+            const res = await fetch(`/api/v1/client/client-meta/list/?client_id=${myClient.id}`, {
+              headers: { Authorization: API_KEY }
+            });
+            if (res.ok) {
+              const data = await res.json();
+              const map: Record<string, string> = {};
+              data.forEach((item: any) => map[item.key] = item.value);
+              setBriefingData(map);
+            }
+          } catch (e) {
+            console.error(e);
+          }
+        }
+      }
+    };
+    fetchBriefing();
+  }, [user, clients]);
+
+  const getDayLabel = (englishDay: string) => {
+    const map: Record<string, string> = {
+      "Monday": "Segunda-feira",
+      "Tuesday": "Terça-feira",
+      "Wednesday": "Quarta-feira",
+      "Thursday": "Quinta-feira",
+      "Friday": "Sexta-feira",
+      "Saturday": "Sábado",
+      "Sunday": "Domingo",
+    };
+    return map[englishDay] || englishDay;
+  };
+
+  const isAdmin = user?.role === 'admin' || user?.is_superuser;
 
   return (
     <>
@@ -43,25 +241,47 @@ export default function Home() {
         title="Dashboard | Miggo"
         description="Visão geral da sua conta Miggo"
       />
-      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 md:gap-6">
+      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 md:gap-6 mb-6">
 
-        {/* Clients Card */}
-        <div className="rounded-2xl border border-gray-200 bg-white p-5 dark:border-gray-800 dark:bg-white/[0.03] md:p-6">
-          <div className="flex items-center justify-center w-12 h-12 bg-gray-100 rounded-xl dark:bg-gray-800">
-            <GroupIcon className="text-gray-800 size-6 dark:text-white/90" />
-          </div>
-
-          <div className="flex items-end justify-between mt-5">
+        {/* Clients Card OR Briefing Widget */}
+        {user?.role === 'client' ? (
+          <div className="rounded-2xl border border-gray-200 bg-white p-5 dark:border-gray-800 dark:bg-white/[0.03] md:p-6">
+            <div className="flex items-center justify-between mb-4">
+              <div className="flex items-center justify-center w-12 h-12 bg-gray-100 rounded-xl dark:bg-gray-800">
+                <GroupIcon className="text-gray-800 size-6 dark:text-white/90" />
+              </div>
+              <Link to="/briefing" className="text-sm font-medium text-brand-500 hover:text-brand-600">Ver detalhes</Link>
+            </div>
             <div>
-              <span className="text-sm text-gray-500 dark:text-gray-400">
-                Clientes Ativos
-              </span>
-              <h4 className="mt-2 font-bold text-gray-800 text-title-sm dark:text-white/90">
-                {loading ? "..." : clientCount}
+              <span className="text-sm text-gray-500 dark:text-gray-400">Minha Marca</span>
+              <h4 className="mt-2 font-bold text-gray-800 text-title-sm dark:text-white/90 line-clamp-1">
+                {briefingData['brand_name'] || clients.find(c => c.user === user?.id)?.name || "Marca"}
               </h4>
+              {briefingData['brand_tone'] && (
+                <p className="text-xs text-gray-500 mt-2 line-clamp-2">
+                  Tom: {briefingData['brand_tone']}
+                </p>
+              )}
             </div>
           </div>
-        </div>
+        ) : (
+          <div className="rounded-2xl border border-gray-200 bg-white p-5 dark:border-gray-800 dark:bg-white/[0.03] md:p-6">
+            <div className="flex items-center justify-center w-12 h-12 bg-gray-100 rounded-xl dark:bg-gray-800">
+              <GroupIcon className="text-gray-800 size-6 dark:text-white/90" />
+            </div>
+
+            <div className="flex items-end justify-between mt-5">
+              <div>
+                <span className="text-sm text-gray-500 dark:text-gray-400">
+                  Clientes Ativos
+                </span>
+                <h4 className="mt-2 font-bold text-gray-800 text-title-sm dark:text-white/90">
+                  {loading ? "..." : clientCount}
+                </h4>
+              </div>
+            </div>
+          </div>
+        )}
 
         {/* Posts Card */}
         <div className="rounded-2xl border border-gray-200 bg-white p-5 dark:border-gray-800 dark:bg-white/[0.03] md:p-6">
@@ -80,6 +300,144 @@ export default function Home() {
           </div>
         </div>
 
+      </div>
+
+      <div className="grid grid-cols-1 gap-6 xl:grid-cols-2">
+        {/* Chart Card */}
+        <div className="rounded-2xl border border-gray-200 bg-white p-5 dark:border-gray-800 dark:bg-white/[0.03] md:p-6">
+          <h3 className="text-lg font-semibold text-gray-800 dark:text-white/90 mb-4">
+            Posts por Status
+          </h3>
+          <div className="w-full">
+            {loading ? (
+              <div className="h-[350px] flex items-center justify-center text-gray-400">Carregando gráfico...</div>
+            ) : (
+              <div id="chart">
+                <ReactApexChart options={chartData.options} series={chartData.series} type="bar" height={350} />
+              </div>
+            )}
+          </div>
+        </div>
+
+        {/* History Widget */}
+        <div className="rounded-2xl border border-gray-200 bg-white p-5 dark:border-gray-800 dark:bg-white/[0.03] md:p-6 flex flex-col h-[450px]">
+          <div className="flex items-center justify-between mb-4">
+            <h3 className="text-lg font-semibold text-gray-800 dark:text-white/90">
+              Histórico Recente
+            </h3>
+            <Link to="/history" className="text-sm font-medium text-brand-500 hover:text-brand-600 flex items-center gap-1">
+              Ver tudo <ArrowRightIcon className="w-4 h-4 ml-1" />
+            </Link>
+          </div>
+
+          <div className="flex-1 overflow-y-auto pr-2 custom-scrollbar">
+            {loading ? (
+              <div className="flex flex-col gap-4">
+                {[1, 2, 3].map(i => (
+                  <div key={i} className="animate-pulse flex gap-3">
+                    <div className="w-10 h-10 bg-gray-200 rounded-full dark:bg-gray-700"></div>
+                    <div className="flex-1">
+                      <div className="h-4 bg-gray-200 rounded w-3/4 mb-2 dark:bg-gray-700"></div>
+                      <div className="h-3 bg-gray-200 rounded w-1/2 dark:bg-gray-700"></div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            ) : history.length === 0 ? (
+              <p className="text-gray-500 text-sm">Nenhuma atividade recente.</p>
+            ) : (
+              <div className="flex flex-col gap-4">
+                {history.map((item) => (
+                  <div key={item.id} className="flex gap-3 items-start p-3 rounded-lg hover:bg-gray-50 dark:hover:bg-white/5 transition-colors border border-transparent hover:border-gray-100 dark:hover:border-gray-700">
+                    <div className="flex-shrink-0 w-8 h-8 rounded-full bg-blue-50 text-blue-500 flex items-center justify-center dark:bg-blue-500/10 dark:text-blue-400 mt-1">
+                      <TimeIcon className="w-4 h-4" />
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <p className="text-sm font-medium text-gray-800 dark:text-white/90 line-clamp-2">
+                        {item.description}
+                      </p>
+                      <div className="flex items-center gap-2 mt-1">
+                        <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded uppercase 
+                                            ${item.action === 'CREATE' ? 'bg-green-100 text-green-700 dark:bg-green-500/10 dark:text-green-400' :
+                            item.action === 'UPDATE' ? 'bg-blue-100 text-blue-700 dark:bg-blue-500/10 dark:text-blue-400' :
+                              item.action === 'DELETE' ? 'bg-red-100 text-red-700 dark:bg-red-500/10 dark:text-red-400' :
+                                'bg-gray-100 text-gray-700'}`}>
+                          {{ 'CREATE': 'CRIADO', 'UPDATE': 'ALTERADO', 'DELETE': 'DELETADO' }[item.action] || item.action}
+                        </span>
+                        <span className="text-xs text-gray-500 dark:text-gray-400 flex items-center gap-1">
+                          {new Date(item.created_at).toLocaleDateString()} às {new Date(item.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        </div>
+      </div>
+
+      {/* Editorial Calendar Widget */}
+      <div className="rounded-2xl border border-gray-200 bg-white p-5 dark:border-gray-800 dark:bg-white/[0.03] md:p-6 mb-6">
+        <h3 className="text-lg font-semibold text-gray-800 dark:text-white/90 mb-4 flex items-center gap-2">
+          <CalenderIcon className="w-5 h-5" />
+          {isAdmin ? "Calendário Editorial dos Clientes" : "Meu Calendário Editorial"}
+        </h3>
+
+        {loading ? (
+          <div className="h-20 flex items-center justify-center text-gray-400">Carregando calendário...</div>
+        ) : (
+          <>
+            {isAdmin ? (
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+                {clients.map(client => {
+                  const activeRules = editorialRules.filter(r => r.client === client.id && r.active).length;
+                  return (
+                    <div key={client.id} className="p-4 rounded-lg border border-gray-100 dark:border-gray-700 hover:shadow-sm transition-all flex flex-col gap-2">
+                      <div className="flex justify-between items-start">
+                        <h4 className="font-semibold text-gray-800 dark:text-white/90">{client.name}</h4>
+                        <span className={`text-xs px-2 py-1 rounded-full ${activeRules > 0 ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-500'}`}>
+                          {activeRules} regras
+                        </span>
+                      </div>
+                      <Link
+                        to={`/editorial-calendar?client_id=${client.id}`}
+                        className="text-sm text-brand-500 hover:text-brand-600 font-medium mt-auto self-start"
+                      >
+                        Ver Calendário &rarr;
+                      </Link>
+                    </div>
+                  );
+                })}
+              </div>
+            ) : (
+              <div className="flex flex-col gap-3">
+                {editorialRules.filter(r => r.active).length === 0 ? (
+                  <p className="text-gray-500">Nenhuma regra ativa no calendário.</p>
+                ) : (
+                  <div className="divide-y divide-gray-100 dark:divide-gray-700">
+                    {["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"].map(day => {
+                      const rules = editorialRules.filter(r => r.week_day === day && r.active);
+                      if (rules.length === 0) return null;
+                      return (
+                        <div key={day} className="py-3 flex gap-4 items-center">
+                          <span className="w-24 font-medium text-gray-500 dark:text-gray-400 text-sm">{getDayLabel(day)}</span>
+                          <div className="flex gap-2 flex-wrap">
+                            {rules.map(rule => (
+                              <span key={rule.id} className="px-3 py-1 bg-brand-50 dark:bg-brand-500/10 text-brand-600 dark:text-brand-400 rounded-lg text-sm font-medium border border-brand-100 dark:border-brand-500/20">
+                                {rule.subject} ({rule.time})
+                              </span>
+                            ))}
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                )}
+              </div>
+            )}
+          </>
+        )}
       </div>
     </>
   );
