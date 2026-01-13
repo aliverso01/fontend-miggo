@@ -10,6 +10,7 @@ import { useModal } from "../../hooks/useModal";
 import { Modal } from "../../components/ui/modal";
 
 import Label from "../../components/form/Label";
+import Select from "../../components/form/Select";
 import KanbanColumn from "./KanbanColumn";
 import CreatePostModal from "./CreatePostModal";
 import EditPostModal from "./EditPostModal";
@@ -513,16 +514,15 @@ export default function ContentKanban() {
 
             <div className="flex flex-col h-[calc(100vh-200px)]">
                 <div className="flex justify-between items-center mb-6">
-                    <div className="w-64">
+                    <div className="w-64 relative z-50">
                         <Label>Cliente</Label>
-                        <select
-                            className="w-full h-11 rounded-lg border border-gray-300 bg-transparent px-4 py-2.5 text-sm outline-none focus:border-brand-300 dark:border-gray-700 dark:bg-gray-900 dark:text-white"
-                            value={selectedClient}
-                            onChange={(e) => setSelectedClient(Number(e.target.value))}
-                        >
-                            <option value="" disabled>Selecione...</option>
-                            {clients.map(c => <option key={c.id} value={c.id}>{c.name} </option>)}
-                        </select>
+                        <Select
+                            options={clients.map(c => ({ value: String(c.id), label: c.name }))}
+                            placeholder="Selecione..."
+                            onChange={(val) => setSelectedClient(Number(val))}
+                            defaultValue={String(selectedClient)}
+                            className="mt-1"
+                        />
                     </div>
                 </div>
 

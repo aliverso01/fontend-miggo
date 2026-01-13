@@ -32,6 +32,12 @@ const MultiSelect: React.FC<MultiSelectProps> = ({
   const [isOpen, setIsOpen] = useState(false);
   const [focusedIndex, setFocusedIndex] = useState(-1);
   const dropdownRef = useRef<HTMLDivElement>(null);
+  const [searchTerm, setSearchTerm] = useState("");
+  const inputRef = useRef<HTMLInputElement>(null);
+
+  const filteredOptions = options.filter(opt =>
+    opt.text.toLowerCase().includes(searchTerm.toLowerCase())
+  );
 
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
@@ -40,13 +46,20 @@ const MultiSelect: React.FC<MultiSelectProps> = ({
         !dropdownRef.current.contains(event.target as Node)
       ) {
         setIsOpen(false);
+        setSearchTerm("");
       }
     };
 
     if (isOpen) {
       document.addEventListener("mousedown", handleClickOutside);
+      // Focus input on open
+      if (inputRef.current) {
+        inputRef.current.focus();
+      }
       return () =>
         document.removeEventListener("mousedown", handleClickOutside);
+    } else {
+      setSearchTerm("");
     }
   }, [isOpen]);
 
@@ -76,30 +89,37 @@ const MultiSelect: React.FC<MultiSelectProps> = ({
   const handleKeyDown = (e: React.KeyboardEvent) => {
     if (disabled) return;
 
-    e.preventDefault();
-    switch (e.key) {
-      case "Enter":
-        if (!isOpen) {
-          setIsOpen(true);
-        } else if (focusedIndex >= 0) {
-          handleSelect(options[focusedIndex].value);
-        }
-        break;
-      case "Escape":
-        setIsOpen(false);
-        break;
-      case "ArrowDown":
-        if (!isOpen) {
-          setIsOpen(true);
-        } else {
-          setFocusedIndex((prev) => (prev < options.length - 1 ? prev + 1 : 0));
-        }
-        break;
-      case "ArrowUp":
-        if (isOpen) {
-          setFocusedIndex((prev) => (prev > 0 ? prev - 1 : options.length - 1));
-        }
-        break;
+    if (e.key === "Enter") {
+      e.preventDefault();
+      if (!isOpen) {
+        setIsOpen(true);
+      } else if (focusedIndex >= 0 && filteredOptions[focusedIndex]) {
+        handleSelect(filteredOptions[focusedIndex].value);
+      }
+      return;
+    }
+
+    if (e.key === "Escape") {
+      setIsOpen(false);
+      return;
+    }
+
+    if (e.key === "ArrowDown") {
+      e.preventDefault();
+      if (!isOpen) {
+        setIsOpen(true);
+      } else {
+        setFocusedIndex((prev) => (prev < filteredOptions.length - 1 ? prev + 1 : 0));
+      }
+      return;
+    }
+
+    if (e.key === "ArrowUp") {
+      e.preventDefault();
+      if (isOpen) {
+        setFocusedIndex((prev) => (prev > 0 ? prev - 1 : filteredOptions.length - 1));
+      }
+      return;
     }
   };
 
@@ -126,11 +146,10 @@ const MultiSelect: React.FC<MultiSelectProps> = ({
             tabIndex={disabled ? -1 : 0}
           >
             <div
-              className={`mb-2 flex min-h-11  rounded-lg border border-gray-300 py-1.5 pl-3 pr-3 shadow-theme-xs outline-hidden transition focus:border-brand-300 focus:shadow-focus-ring dark:border-gray-700 dark:bg-gray-900 dark:focus:border-brand-300 ${
-                disabled
+              className={`mb-2 flex min-h-11 rounded-lg border border-gray-300 py-1.5 pl-3 pr-3 shadow-theme-xs outline-hidden transition focus:border-brand-300 focus:shadow-focus-ring dark:border-gray-700 dark:bg-gray-900 dark:focus:border-brand-300 ${disabled
                   ? "opacity-50 cursor-not-allowed bg-gray-50 dark:bg-gray-800"
                   : "cursor-pointer"
-              }`}
+                }`}
             >
               <div className="flex flex-wrap flex-auto gap-2">
                 {selectedOptions.length > 0 ? (
@@ -187,9 +206,8 @@ const MultiSelect: React.FC<MultiSelectProps> = ({
                   className="w-5 h-5 text-gray-700 outline-hidden cursor-pointer focus:outline-hidden dark:text-gray-400 disabled:cursor-not-allowed"
                 >
                   <svg
-                    className={`stroke-current transition-transform ${
-                      isOpen ? "rotate-180" : ""
-                    }`}
+                    className={`stroke-current transition-transform ${isOpen ? "rotate-180" : ""
+                      }`}
                     width="20"
                     height="20"
                     viewBox="0 0 20 20"
@@ -216,28 +234,42 @@ const MultiSelect: React.FC<MultiSelectProps> = ({
               role="listbox"
               aria-label={label}
             >
-              {options.map((option, index) => {
-                const isSelected = selectedOptions.includes(option.value);
-                const isFocused = index === focusedIndex;
+              <div className="p-2 sticky top-0 bg-white dark:bg-gray-900 z-10 border-b border-gray-100 dark:border-gray-800">
+                <input
+                  ref={inputRef}
+                  type="text"
+                  className="w-full px-3 py-2 text-sm border border-gray-200 rounded-md focus:outline-none focus:border-brand-500 dark:bg-gray-800 dark:border-gray-700 dark:text-gray-200"
+                  placeholder="Search..."
+                  value={searchTerm}
+                  onChange={e => setSearchTerm(e.target.value)}
+                  onKeyDown={e => e.stopPropagation()} // Allow typing
+                />
+              </div>
+              {filteredOptions.length === 0 ? (
+                <div className="p-3 text-sm text-gray-500 text-center">No results found</div>
+              ) : (
+                filteredOptions.map((option, index) => {
+                  const isSelected = selectedOptions.includes(option.value);
+                  const isFocused = index === focusedIndex;
 
-                return (
-                  <div
-                    key={option.value}
-                    className={`hover:bg-primary/5 w-full cursor-pointer rounded-t border-b border-gray-200 dark:border-gray-800 ${
-                      isFocused ? "bg-primary/5" : ""
-                    } ${isSelected ? "bg-primary/10" : ""}`}
-                    onClick={() => handleSelect(option.value)}
-                    role="option"
-                    aria-selected={isSelected}
-                  >
-                    <div className="relative flex w-full items-center p-2 pl-2">
-                      <div className="mx-2 leading-6 text-gray-800 dark:text-white/90">
-                        {option.text}
+                  return (
+                    <div
+                      key={option.value}
+                      className={`hover:bg-primary/5 w-full cursor-pointer rounded-t border-b border-gray-200 dark:border-gray-800 ${isFocused ? "bg-primary/5" : ""
+                        } ${isSelected ? "bg-primary/10" : ""}`}
+                      onClick={() => handleSelect(option.value)}
+                      role="option"
+                      aria-selected={isSelected}
+                    >
+                      <div className="relative flex w-full items-center p-2 pl-2">
+                        <div className="mx-2 leading-6 text-gray-800 dark:text-white/90">
+                          {option.text}
+                        </div>
                       </div>
                     </div>
-                  </div>
-                );
-              })}
+                  );
+                })
+              )}
             </div>
           )}
         </div>

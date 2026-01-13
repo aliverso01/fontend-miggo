@@ -4,6 +4,7 @@ import questionsData from "../../data/briefingQuestions.json";
 import Button from "../../components/ui/button/Button";
 import Input from "../../components/form/input/InputField";
 import { AngleLeftIcon, AngleRightIcon, CheckLineIcon, PencilIcon } from "../../icons";
+import Select from "../../components/form/Select";
 
 const API_KEY = "Api-Key vxQRQtgZ.M9ppHygHa4hS32hnkTshmm1kxTD3qCSS";
 
@@ -116,7 +117,44 @@ export default function Briefing() {
         }
     };
 
-    const handleNext = () => {
+    const saveCurrentAnswer = async () => {
+        if (!selectedClient) return;
+
+        const key = currentQuestion.meta_key;
+        const value = responses[key];
+        if (value === undefined) return;
+
+        const id = metaIds[key];
+        const payload = { client: selectedClient, key, value };
+
+        try {
+            if (id) {
+                await fetch(`/api/v1/client/client-meta/update/${id}/`, {
+                    method: 'PATCH',
+                    headers: { 'Content-Type': 'application/json', Authorization: API_KEY },
+                    body: JSON.stringify(payload)
+                });
+            } else {
+                const res = await fetch(`/api/v1/client/client-meta/create/`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json', Authorization: API_KEY },
+                    body: JSON.stringify(payload)
+                });
+                if (res.ok) {
+                    const data = await res.json();
+                    setMetaIds(prev => ({ ...prev, [key]: data.id }));
+                }
+            }
+        } catch (e) {
+            console.error("Auto-save failed", e);
+        }
+    };
+
+    const handleNext = async () => {
+        setSaving(true);
+        await saveCurrentAnswer();
+        setSaving(false);
+
         if (currentStep < questions.length - 1) {
             setCurrentStep(prev => prev + 1);
         }
@@ -153,7 +191,6 @@ export default function Briefing() {
         try {
             // Update existing
             const updates = [];
-            const creates = [];
 
             for (const key in responses) {
                 const value = responses[key];
@@ -161,26 +198,26 @@ export default function Briefing() {
 
                 // Only save if defined
                 if (value !== undefined) {
+                    const payload = { client: selectedClient, key, value };
+
                     if (id) {
                         updates.push(fetch(`/api/v1/client/client-meta/update/${id}/`, {
                             method: 'PATCH',
                             headers: { 'Content-Type': 'application/json', Authorization: API_KEY },
-                            body: JSON.stringify({ user: selectedClient, key, value })
+                            body: JSON.stringify(payload)
                         }));
                     } else {
-                        creates.push({ user: selectedClient, key, value });
+                        updates.push(fetch(`/api/v1/client/client-meta/create/`, {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json', Authorization: API_KEY },
+                            body: JSON.stringify(payload)
+                        }));
                     }
                 }
             }
 
             await Promise.all(updates);
-            if (creates.length > 0) {
-                await fetch(`/api/v1/client/client-meta/create/`, {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json', Authorization: API_KEY },
-                    body: JSON.stringify(creates)
-                });
-            }
+            // Removed bulk create block
 
             // Refresh data to get new IDs
             await fetchClientMeta(selectedClient); // Refresh
@@ -200,38 +237,60 @@ export default function Briefing() {
         const q = currentQuestion;
         const val = responses[q.meta_key] || "";
 
+        const handleEnter = (e: React.KeyboardEvent) => {
+            if (e.key === "Enter") {
+                e.preventDefault();
+                if (currentStep < questions.length - 1) {
+                    handleNext();
+                } else {
+                    saveChanges();
+                }
+            }
+        };
+
         switch (q.type) {
             case 'text':
                 return (
                     <Input
+                        key={q.meta_key}
                         value={val}
                         onChange={(e) => handleResponseChange(e.target.value)}
+                        onKeyDown={handleEnter}
                         placeholder={q.placeholder}
                         className="text-lg py-4"
                         autoFocus
+                        disabled={saving}
                     />
                 );
             case 'textarea':
                 return (
                     <textarea
+                        key={q.meta_key}
                         className="w-full rounded-lg border border-gray-300 bg-transparent px-4 py-3 text-lg outline-none focus:border-brand-500 min-h-[150px] dark:border-gray-700 dark:bg-gray-800 dark:text-white"
                         value={val}
                         onChange={(e) => handleResponseChange(e.target.value)}
+                        onKeyDown={(e) => {
+                            if (e.key === "Enter" && (e.ctrlKey || e.metaKey)) {
+                                handleEnter(e);
+                            }
+                        }}
                         placeholder={q.placeholder}
                         autoFocus
+                        disabled={saving}
                     />
                 );
             case 'radio':
                 return (
                     <div className="flex flex-col gap-3">
                         {q.options?.map((opt, i) => (
-                            <label key={i} className={`flex items-center gap-3 p-4 rounded-lg border cursor-pointer transition-all ${val === opt.text ? 'border-brand-500 bg-brand-50 dark:bg-brand-900/20' : 'border-gray-200 hover:border-brand-300 dark:border-gray-700'}`}>
+                            <label key={i} className={`flex items-center gap-3 p-4 rounded-lg border cursor-pointer transition-all ${val === opt.text ? 'border-brand-500 bg-brand-50 dark:bg-brand-900/20' : 'border-gray-200 hover:border-brand-300 dark:border-gray-700'} ${saving ? 'opacity-50 cursor-not-allowed' : ''}`}>
                                 <input
                                     type="radio"
                                     name={q.meta_key}
                                     value={opt.text}
                                     checked={val === opt.text}
                                     onChange={(e) => handleResponseChange(e.target.value)}
+                                    disabled={saving}
                                     className="w-5 h-5 text-brand-600 focus:ring-brand-500"
                                 />
                                 <span className="text-lg font-medium text-gray-700 dark:text-gray-200">{opt.text}</span>
@@ -245,12 +304,13 @@ export default function Briefing() {
                         {q.options?.map((opt, i) => {
                             const selected = val.split(", ").includes(opt.text);
                             return (
-                                <label key={i} className={`flex items-center gap-3 p-4 rounded-lg border cursor-pointer transition-all ${selected ? 'border-brand-500 bg-brand-50 dark:bg-brand-900/20' : 'border-gray-200 hover:border-brand-300 dark:border-gray-700'}`}>
+                                <label key={i} className={`flex items-center gap-3 p-4 rounded-lg border cursor-pointer transition-all ${selected ? 'border-brand-500 bg-brand-50 dark:bg-brand-900/20' : 'border-gray-200 hover:border-brand-300 dark:border-gray-700'} ${saving ? 'opacity-50 cursor-not-allowed' : ''}`}>
                                     <input
                                         type="checkbox"
                                         value={opt.text}
                                         checked={selected}
                                         onChange={() => handleMultiSelect(opt.text)}
+                                        disabled={saving}
                                         className="w-5 h-5 text-brand-600 focus:ring-brand-500 rounded"
                                     />
                                     <span className="text-lg font-medium text-gray-700 dark:text-gray-200">{opt.text}</span>
@@ -334,13 +394,7 @@ export default function Briefing() {
                 </Button>
 
                 <div className="flex gap-3">
-                    <Button
-                        onClick={() => saveChanges()}
-                        disabled={saving}
-                        className="bg-green-600 hover:bg-green-700 text-white"
-                    >
-                        {saving ? 'Salvando...' : 'Salvar e Continuar'}
-                    </Button>
+
 
                     {currentStep < questions.length - 1 ? (
                         <Button
@@ -377,15 +431,14 @@ export default function Briefing() {
 
                 <div className="flex items-center gap-2">
                     <span className="text-sm text-gray-500">Cliente:</span>
-                    <select
-                        className="bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-700 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-brand-500"
-                        value={selectedClient}
-                        onChange={(e) => setSelectedClient(Number(e.target.value))}
-                    >
-                        {clients.map(c => (
-                            <option key={c.id} value={c.id}>{c.name}</option>
-                        ))}
-                    </select>
+                    <div className="w-64 relative z-50">
+                        <Select
+                            options={clients.map(c => ({ value: String(c.id), label: c.name }))}
+                            placeholder="Selecione um cliente"
+                            onChange={(val) => setSelectedClient(Number(val))}
+                            defaultValue={String(selectedClient)}
+                        />
+                    </div>
                 </div>
             </div>
 
