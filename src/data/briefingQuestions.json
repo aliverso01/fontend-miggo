@@ -1,0 +1,131 @@
+[
+    {
+        "meta_key": "fullname",
+        "title": "Qual seu nome e sobrenome?",
+        "type": "text"
+    },
+    {
+        "meta_key": "email",
+        "title": "Qual seu melhor email?",
+        "type": "text"
+    },
+    {
+        "meta_key": "nickname",
+        "title": "Como você prefere ser chamado?",
+        "type": "text"
+    },
+    {
+        "meta_key": "company",
+        "title": "Qual o nome da sua marca?",
+        "type": "text"
+    },
+    {
+        "meta_key": "instagram",
+        "title": "Qual o @ do Instagram do seu negócio?",
+        "type": "text"
+    },
+    {
+        "meta_key": "site",
+        "title": "Qual o site da sua marca?",
+        "type": "text"
+    },
+    {
+        "meta_key": "business",
+        "title": "Qual o seu ramo de atividade?",
+        "type": "text"
+    },
+    {
+        "meta_key": "linkedin",
+        "title": "Qual o link para o LinkedIn que produziremos conteúdo?",
+        "type": "text"
+    },
+    {
+        "meta_key": "target",
+        "title": "Você vende para pessoas ou empresas?",
+        "type": "radio",
+        "order": "default",
+        "options": [
+            {
+                "text": "Pessoas",
+                "image": null
+            },
+            {
+                "text": "Empresas",
+                "image": null
+            }
+        ]
+    },
+    {
+        "meta_key": "services",
+        "title": "Quais são seus principais produtos/serviços?",
+        "type": "textarea",
+        "placeholder": "Escreva aqui o nome dos produtos ou serviços que você vende ou promove..."
+    },
+    {
+        "meta_key": "ticket",
+        "title": "Qual o preço dos seus principais produtos/serviços?",
+        "type": "textarea",
+        "placeholder": "Escreva aqui o preço médio dos produtos ou serviços que você vende ou promove..."
+    },
+    {
+        "meta_key": "differential",
+        "title": "Quais são seus diferenciais?",
+        "type": "textarea",
+        "placeholder": "Escreva aqui o que faz você ser uma opção melhor que outras do mercado..."
+    },
+    {
+        "meta_key": "audience_profile",
+        "title": "Quem são as pessoas que mais compram de você?",
+        "type": "textarea",
+        "placeholder": "Ex: homens ou mulheres, jovens, mães, aposentados, que moram em tal cidade, profissionais de tal área…"
+    },
+    {
+        "meta_key": "goals",
+        "title": "Qual seu objetivo nas redes sociais?",
+        "type": "check",
+        "order": "random",
+        "options": [
+            {
+                "text": "Ser mais conhecido"
+            },
+            {
+                "text": "Vender mais"
+            },
+            {
+                "text": "Aumentar visitas no meu site"
+            },
+            {
+                "text": "Ser autoridade no ramo"
+            }
+        ]
+    },
+    {
+        "meta_key": "referer",
+        "title": "Como ficou sabendo da Miggo?",
+        "type": "check",
+        "order": "random",
+        "options": [
+            {
+                "text": "Google"
+            },
+            {
+                "text": "Redes sociais"
+            },
+            {
+                "text": "Evento"
+            },
+            {
+                "text": "Indicação"
+            },
+            {
+                "text": "Outro"
+            }
+        ]
+    },
+    {
+        "meta_key": "extra",
+        "title": "Alguma outra informação importante que acha que precisamos saber sobre sua marca?",
+        "type": "textarea",
+        "placeholder": "Conte aqui outras informações ou materiais que queira dividir sobre sua marca."
+    }
+]

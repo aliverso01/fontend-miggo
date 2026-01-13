@@ -1,13 +1,21 @@
+import { Navigate } from "react-router";
 import PageMeta from "../../components/common/PageMeta";
 import AuthLayout from "./AuthPageLayout";
 import SignUpForm from "../../components/auth/SignUpForm";
+import { useAuth } from "../../hooks/authHook";
 
 export default function SignUp() {
+  const { user } = useAuth();
+
+  if (user) {
+    return <Navigate to="/" replace />;
+  }
+
   return (
     <>
       <PageMeta
-        title="React.js SignUp Dashboard | TailAdmin - Next.js Admin Dashboard Template"
-        description="This is React.js SignUp Tables Dashboard page for TailAdmin - React.js Tailwind CSS Admin Dashboard Template"
+        title="Miggo - Cadastrar"
+        description="Miggo - Sua plataforma de posts por assinatura"
       />
       <AuthLayout>
         <SignUpForm />

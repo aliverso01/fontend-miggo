@@ -15,4 +15,18 @@ export default defineConfig({
       },
     }),
   ],
+  server: {
+    proxy: {
+      "/api": {
+        target: "http://localhost:8000",
+        changeOrigin: true,
+        secure: false,
+        configure: (proxy, _options) => {
+          proxy.on("proxyReq", (proxyReq, _req, _res) => {
+            proxyReq.setHeader("Origin", "http://localhost:8000");
+          });
+        },
+      },
+    },
+  },
 });
