@@ -1,34 +1,21 @@
 import { useDrop } from "react-dnd";
 import PostCard from "./PostCard";
-
-interface Post {
-    id: number;
-    subject: string;
-    content: string;
-    post_date: string;
-    post_time: string;
-    media: string | null;
-    client: number;
-}
-
-interface Format {
-    id: number;
-    name: string;
-    description: string;
-    platform: string;
-}
+import { Client, Format, Media, Post, PostMediaLink } from "./ContentKanban";
 
 interface KanbanColumnProps {
     date: string;
     dayName: string;
     posts: Post[];
     formats: Format[];
+    clients: Client[];
+    medias: Media[];
+    postMedias: PostMediaLink[];
     onMovePost: (id: number, date: string) => void;
     onEdit: (post: Post) => void;
     onDelete: (post: Post) => void;
 }
 
-export default function KanbanColumn({ date, dayName, posts, formats, onMovePost, onEdit, onDelete }: KanbanColumnProps) {
+export default function KanbanColumn({ date, dayName, posts, formats, clients, medias, postMedias, onMovePost, onEdit, onDelete }: KanbanColumnProps) {
     const [{ isOver }, drop] = useDrop(() => ({
         accept: "POST",
         drop: (item: { id: number; date: string }) => {
@@ -63,9 +50,19 @@ export default function KanbanColumn({ date, dayName, posts, formats, onMovePost
 
             <div className="flex-1 p-3 overflow-y-auto custom-scrollbar">
                 {posts.map((post) => (
-                    <PostCard key={post.id} post={post} formats={formats} onEdit={onEdit} onDelete={onDelete} />
+                    <PostCard
+                        key={post.id}
+                        post={post}
+                        formats={formats}
+                        clients={clients}
+                        medias={medias}
+                        postMedias={postMedias}
+                        onEdit={onEdit}
+                        onDelete={onDelete}
+                    />
                 ))}
             </div>
         </div>
     );
 }
+

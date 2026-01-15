@@ -6,8 +6,79 @@ import { ThemeToggleButton } from "../components/common/ThemeToggleButton";
 import NotificationDropdown from "../components/header/NotificationDropdown";
 import UserDropdown from "../components/header/UserDropdown";
 
+import { useSearch } from "../context/SearchContext";
+
+import { useNavigate } from "react-router";
+
+interface Post {
+  id: number;
+  subject: string;
+  client: number;
+  post_date: string;
+}
+
+interface Client {
+  id: number;
+  name: string;
+}
+
 const AppHeader: React.FC = () => {
   const [isApplicationMenuOpen, setApplicationMenuOpen] = useState(false);
+  const { searchQuery, setSearchQuery } = useSearch();
+  const [suggestions, setSuggestions] = useState<Post[]>([]);
+  const [clients, setClients] = useState<Client[]>([]);
+  const [showSuggestions, setShowSuggestions] = useState(false);
+  const navigate = useNavigate();
+
+  const API_KEY = "Api-Key vxQRQtgZ.M9ppHygHa4hS32hnkTshmm1kxTD3qCSS";
+
+  useEffect(() => {
+    fetch("/api/v1/client/list/", {
+      headers: { Authorization: API_KEY },
+    })
+      .then((res) => res.json())
+      .then((data) => setClients(data))
+      .catch((err) => console.error("Error fetching clients:", err));
+  }, []);
+
+  useEffect(() => {
+    if (!searchQuery || searchQuery.length < 2) {
+      setSuggestions([]);
+      setShowSuggestions(false);
+      return;
+    }
+
+    const timer = setTimeout(() => {
+      fetch("/api/v1/post/list/", {
+        headers: { Authorization: API_KEY },
+      })
+        .then((res) => res.json())
+        .then((posts: Post[]) => {
+          const lowerQuery = searchQuery.toLowerCase();
+          const filtered = posts.filter((post) => {
+            const client = clients.find((c) => c.id === post.client);
+            const clientName = client?.name.toLowerCase() || "";
+            return (
+              post.subject.toLowerCase().includes(lowerQuery) ||
+              clientName.includes(lowerQuery)
+            );
+          });
+          setSuggestions(filtered.slice(0, 5));
+          setShowSuggestions(true);
+        })
+        .catch((err) => console.error("Error searching posts:", err));
+    }, 300);
+
+    return () => clearTimeout(timer);
+  }, [searchQuery, clients]);
+
+  const handleSuggestionClick = (post: Post) => {
+    setSearchQuery(""); // Clear search to show full context
+    setShowSuggestions(false);
+    navigate(
+      `/content?date=${post.post_date}&client_id=${post.client}&edit_post=${post.id}`
+    );
+  };
 
   const { isMobileOpen, toggleSidebar, toggleMobileSidebar } = useSidebar();
 
@@ -39,6 +110,25 @@ const AppHeader: React.FC = () => {
       document.removeEventListener("keydown", handleKeyDown);
     };
   }, []);
+
+  const searchContainerRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (
+        searchContainerRef.current &&
+        !searchContainerRef.current.contains(event.target as Node)
+      ) {
+        setSearchQuery("");
+        setShowSuggestions(false);
+      }
+    };
+
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => {
+      document.removeEventListener("mousedown", handleClickOutside);
+    };
+  }, [setSearchQuery]);
 
   return (
     <header className="sticky top-0 flex w-full bg-white border-gray-200 z-99999 dark:border-gray-800 dark:bg-gray-900 lg:border-b">
@@ -118,7 +208,7 @@ const AppHeader: React.FC = () => {
 
           <div className="hidden lg:block">
             <form>
-              <div className="relative">
+              <div className="relative" ref={searchContainerRef}>
                 <span className="absolute -translate-y-1/2 pointer-events-none left-4 top-1/2">
                   <svg
                     className="fill-gray-500 dark:fill-gray-400"
@@ -139,9 +229,34 @@ const AppHeader: React.FC = () => {
                 <input
                   ref={inputRef}
                   type="text"
+                  value={searchQuery}
                   placeholder="Search or type command..."
+                  onChange={(e) => setSearchQuery(e.target.value)}
                   className="dark:bg-dark-900 h-11 w-full rounded-lg border border-gray-200 bg-transparent py-2.5 pl-12 pr-14 text-sm text-gray-800 shadow-theme-xs placeholder:text-gray-400 focus:border-brand-300 focus:outline-hidden focus:ring-3 focus:ring-brand-500/10 dark:border-gray-800 dark:bg-gray-900 dark:bg-white/[0.03] dark:text-white/90 dark:placeholder:text-white/30 dark:focus:border-brand-800 xl:w-[430px]"
                 />
+
+                {showSuggestions && suggestions.length > 0 && (
+                  <div className="absolute top-12 left-0 w-full bg-white dark:bg-gray-800 rounded-lg shadow-lg border border-gray-200 dark:border-gray-700 z-[99999] overflow-hidden">
+                    {suggestions.map((post) => {
+                      const client = clients.find((c) => c.id === post.client);
+                      return (
+                        <div
+                          key={post.id}
+                          className="px-4 py-3 hover:bg-gray-50 dark:hover:bg-gray-700 cursor-pointer border-b border-gray-100 dark:border-gray-700 last:border-0"
+                          onClick={() => handleSuggestionClick(post)}
+                        >
+                          <p className="text-sm font-medium text-gray-800 dark:text-gray-200">
+                            {post.subject}
+                          </p>
+                          <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">
+                            {client?.name} •{" "}
+                            {new Date(post.post_date).toLocaleDateString()}
+                          </p>
+                        </div>
+                      );
+                    })}
+                  </div>
+                )}
 
                 <button className="absolute right-2.5 top-1/2 inline-flex -translate-y-1/2 items-center gap-0.5 rounded-lg border border-gray-200 bg-gray-50 px-[7px] py-[4.5px] text-xs -tracking-[0.2px] text-gray-500 dark:border-gray-800 dark:bg-white/[0.03] dark:text-gray-400">
                   <span> ⌘ </span>
@@ -152,9 +267,8 @@ const AppHeader: React.FC = () => {
           </div>
         </div>
         <div
-          className={`${
-            isApplicationMenuOpen ? "flex" : "hidden"
-          } items-center justify-between w-full gap-4 px-5 py-4 lg:flex shadow-theme-md lg:justify-end lg:px-0 lg:shadow-none`}
+          className={`${isApplicationMenuOpen ? "flex" : "hidden"
+            } items-center justify-between w-full gap-4 px-5 py-4 lg:flex shadow-theme-md lg:justify-end lg:px-0 lg:shadow-none`}
         >
           <div className="flex items-center gap-2 2xsm:gap-3">
             {/* <!-- Dark Mode Toggler --> */}

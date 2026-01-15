@@ -1,6 +1,7 @@
 import { BrowserRouter as Router, Routes, Route } from "react-router";
 import SignIn from "./pages/AuthPages/SignIn";
 import SignUp from "./pages/AuthPages/SignUp";
+import InstagramSuccess from "./pages/AuthPages/InstagramSuccess";
 import NotFound from "./pages/OtherPage/NotFound";
 import UserProfiles from "./pages/UserProfiles";
 import ClientsList from "./pages/Clients/ClientsList";
@@ -45,6 +46,8 @@ export default function App() {
               <Route path="/editorial-calendar" element={<EditorialCalendar />} />
               <Route path="/history" element={<HistoryList />} />
               <Route path="/blank" element={<Blank />} />
+              <Route path="/instagram/success/:clientId/*" element={<InstagramSuccess />} />
+              <Route path="/linkedin/success/:clientId/*" element={<InstagramSuccess />} />
 
               {/* Forms */}
               <Route path="/form-elements" element={<FormElements />} />

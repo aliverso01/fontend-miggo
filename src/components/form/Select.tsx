@@ -11,6 +11,7 @@ interface SelectProps {
   onChange: (value: string) => void;
   className?: string;
   defaultValue?: string;
+  disabled?: boolean;
 }
 
 const Select: React.FC<SelectProps> = ({
@@ -19,6 +20,7 @@ const Select: React.FC<SelectProps> = ({
   onChange,
   className = "",
   defaultValue = "",
+  disabled = false,
 }) => {
   const [isOpen, setIsOpen] = useState(false);
   const [selectedValue, setSelectedValue] = useState(defaultValue);
@@ -60,9 +62,10 @@ const Select: React.FC<SelectProps> = ({
   return (
     <div className={`relative w-full ${className}`} ref={dropdownRef}>
       <div
-        className={`relative w-full cursor-pointer rounded-lg border border-gray-300 bg-transparent px-4 py-2.5 text-sm shadow-theme-xs outline-none transition focus:border-brand-300 active:border-brand-300 dark:border-gray-700 dark:bg-gray-900 dark:focus:border-brand-300 ${isOpen ? 'border-brand-300 ring-2 ring-brand-500/10' : ''
-          }`}
+        className={`relative w-full rounded-lg border border-gray-300 bg-transparent px-4 py-2.5 text-sm shadow-theme-xs outline-none transition focus:border-brand-300 active:border-brand-300 dark:border-gray-700 dark:bg-gray-900 dark:focus:border-brand-300 ${isOpen ? 'border-brand-300 ring-2 ring-brand-500/10' : ''
+          } ${disabled ? 'opacity-50 cursor-not-allowed bg-gray-100 dark:bg-gray-800' : 'cursor-pointer'}`}
         onClick={() => {
+          if (disabled) return;
           setIsOpen(!isOpen);
           if (!isOpen) setTimeout(() => inputRef.current?.focus(), 0);
         }}
@@ -110,8 +113,8 @@ const Select: React.FC<SelectProps> = ({
                 <div
                   key={option.value}
                   className={`cursor-pointer px-4 py-2 text-sm hover:bg-gray-100 dark:hover:bg-white/5 ${selectedValue === option.value
-                      ? "bg-brand-50 text-brand-500 dark:bg-white/5 dark:text-white"
-                      : "text-gray-700 dark:text-gray-400"
+                    ? "bg-brand-50 text-brand-500 dark:bg-white/5 dark:text-white"
+                    : "text-gray-700 dark:text-gray-400"
                     }`}
                   onClick={() => handleSelect(option.value)}
                 >

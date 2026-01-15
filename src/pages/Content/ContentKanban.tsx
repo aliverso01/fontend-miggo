@@ -15,8 +15,9 @@ import KanbanColumn from "./KanbanColumn";
 import CreatePostModal from "./CreatePostModal";
 import EditPostModal from "./EditPostModal";
 import { useAuthContext } from "../../context/AuthContext";
+import { useSearch } from "../../context/SearchContext";
 
-interface Post {
+export interface Post {
     id: number;
     subject: string;
     content: string;
@@ -30,7 +31,7 @@ interface Post {
     editorial_calendar?: number | null;
 }
 
-interface Client {
+export interface Client {
     id: number;
     name: string;
     user: number;
@@ -57,8 +58,29 @@ export interface PostMediaLink {
     media: number;
 }
 
+export interface PostMediaLink {
+    id: number;
+    post: number;
+    media: number;
+}
+
+const STATUS_LABELS: Record<number, string> = {
+    1: "A CRIAR",
+    2: "RASCUNHO",
+    3: "AGENDADO",
+    4: "ENVIADO",
+    5: "PENDENTE",
+    6: "PAUSADO",
+    7: "FINALIZADO",
+    8: "APROVADO",
+    9: "ENVIANDO",
+    10: "PUBLICADO",
+    11: "CANCELADO"
+};
+
 export default function ContentKanban() {
     const { user } = useAuthContext();
+    const { searchQuery } = useSearch();
     const isSyncing = useRef(false);
     const [posts, setPosts] = useState<Post[]>([]);
     const [clients, setClients] = useState<Client[]>([]);
@@ -70,7 +92,8 @@ export default function ContentKanban() {
     // Initialize date from URL or default to today
     const [currentDate, setCurrentDate] = useState(() => {
         const dateParam = searchParams.get('date');
-        return dateParam ? new Date(dateParam) : new Date();
+        // Append T00:00:00 to ensure local time parsing, preventing timezone day shift
+        return dateParam ? new Date(dateParam + 'T00:00:00') : new Date();
     });
 
     // Initialize client from URL (will be validated against fetched clients later)
@@ -78,6 +101,9 @@ export default function ContentKanban() {
         const clientParam = searchParams.get('client_id');
         return clientParam ? Number(clientParam) : "";
     });
+
+    const [selectedStatus, setSelectedStatus] = useState<number | "">("");
+    const [selectedFormat, setSelectedFormat] = useState<number | "">("");
 
     // Modal
     const { isOpen, openModal, closeModal } = useModal();
@@ -116,23 +142,26 @@ export default function ContentKanban() {
 
     // ... Date calculations
     const getWeekDaysForDate = (baseDate: Date) => {
-        const curr = new Date(baseDate); // Copy to avoid mutation
-        const first = curr.getDate() - curr.getDay(); // Sunday
+        const curr = new Date(baseDate);
+
+        // getDay() retorna: Dom=0, Seg=1, Ter=2, Qua=3, Qui=4, Sex=5, Sab=6
+        const day = curr.getDay();
+
+        // Ajuste para Segunda-feira ser o dia 1 e Domingo ser o dia 7
+        // Se for Domingo (0), tratamos como 7 para que a conta (dia - 7 + 1) volte para a segunda anterior
+        const diff = curr.getDate() - (day === 0 ? 6 : day - 1);
+
         const days = [];
         for (let i = 0; i < 7; i++) {
-            const next = new Date(curr.getTime());
-            next.setDate(first + i); // Correct logic: reset to 'first' then add 'i'
-            // We need to ensure we are working with the correct month/year rollover
-            // Simple way:
             const d = new Date(curr);
-            d.setDate(first + i);
+            d.setDate(diff + i);
             days.push(d.toISOString().split('T')[0]);
         }
         return days;
     };
 
     const weekDates = getWeekDaysForDate(currentDate);
-    const dayNames = ["Domingo", "Segunda", "Terça", "Quarta", "Quinta", "Sexta", "Sábado"];
+    const dayNames = ["Segunda", "Terça", "Quarta", "Quinta", "Sexta", "Sábado", "Domingo"];
 
     const handlePrevWeek = () => {
         setCurrentDate(prev => {
@@ -177,25 +206,28 @@ export default function ContentKanban() {
                     data = data.filter(c => c.user === user.id);
                 }
 
+
                 setClients(data);
 
-                // Auto-selection logic
+                // Auto-selection behavior
                 if (data.length > 0) {
-                    // Validating current selection or default
                     const clientParam = searchParams.get('client_id');
                     let targetId = selectedClient || (clientParam ? Number(clientParam) : null);
 
-                    // Verify target exists in available clients
                     const exists = data.find(c => c.id === targetId);
 
                     if (exists) {
                         if (targetId !== selectedClient) setSelectedClient(exists.id);
                     } else {
-                        // Default to first available
-                        setSelectedClient(data[0].id);
+                        // If user is client, MUST select their account (since dropdown is hidden for them)
+                        if (user?.role === 'client') {
+                            setSelectedClient(data[0].id);
+                        } else {
+                            // Admin: Clear selection to show "All"
+                            if (selectedClient !== "") setSelectedClient("");
+                        }
                     }
                 } else {
-                    // No clients access
                     setSelectedClient("");
                 }
             }
@@ -203,6 +235,59 @@ export default function ContentKanban() {
             console.error("Error fetching clients:", error);
         }
     };
+
+    // URL Deep Linking for Edit Post
+    useEffect(() => {
+        const editPostId = searchParams.get('edit_post');
+        if (editPostId && posts.length > 0) {
+            const post = posts.find(p => p.id === Number(editPostId));
+            if (post) {
+                // Add validation for status and format to avoid 0/null issues
+                if (post.status === undefined) post.status = 2; // Default to draft if missing
+
+                // Small timeout to ensure hydration/render cycle matches (solves dashboard nav issue)
+                setTimeout(() => {
+                    openEditPost(post);
+                }, 100);
+            }
+        }
+    }, [posts, searchParams]);
+
+    // Sync URL params to State (Handle external navigation updates)
+    useEffect(() => {
+        const dateParam = searchParams.get('date');
+        const clientParam = searchParams.get('client_id');
+
+        if (dateParam) {
+            // Append T00:00:00 to ensure local time parsing
+            const newDate = new Date(dateParam + 'T00:00:00');
+            // Compare only date part to avoid loop updates on time diffs
+            if (newDate.getDate() !== currentDate.getDate() ||
+                newDate.getMonth() !== currentDate.getMonth() ||
+                newDate.getFullYear() !== currentDate.getFullYear()) {
+                setCurrentDate(newDate);
+            }
+        }
+
+        if (clientParam !== null) {
+            const newClient = Number(clientParam);
+            if (newClient !== selectedClient) {
+                // If clientParam is present (even if 0 or empty string logic depending on use), update
+                // But Number("") is 0. Our 'all' is "".
+                // clientParam is string. if it's "1" -> 1.
+                // If it is missing from URL, we interpret as All? No, searchParams.get returns null.
+                // If clientParam is "", Number is 0.
+                if (clientParam === "" && selectedClient !== "") setSelectedClient("");
+                else if (newClient !== 0 && !isNaN(newClient) && newClient !== selectedClient) setSelectedClient(newClient);
+            }
+        } else {
+            // If param removed, assume All? 
+            // Existing logic initializes state from URL, but if URL param is removed while on page, should we clear selection?
+            // Yes, for consistency.
+            if (selectedClient !== "") setSelectedClient("");
+        }
+
+    }, [searchParams]); // Dependent only on searchParams changes
 
     useEffect(() => {
         if (user) {
@@ -218,15 +303,20 @@ export default function ContentKanban() {
 
 
     const fetchPosts = async () => {
-        if (!selectedClient) return [];
         try {
             const startDate = weekDates[0];
             const endDate = weekDates[6];
-            const queryParams = new URLSearchParams({
-                client_id: String(selectedClient),
+
+            const params: any = {
                 start_date: startDate,
                 end_date: endDate
-            });
+            };
+
+            if (selectedClient) {
+                params.client_id = String(selectedClient);
+            }
+
+            const queryParams = new URLSearchParams(params);
 
             const response = await fetch(`/api/v1/post/list/?${queryParams.toString()}`, {
                 headers: { Authorization: API_KEY },
@@ -345,13 +435,12 @@ export default function ContentKanban() {
         setSearchParams(params);
 
         const loadData = async () => {
-            if (selectedClient) {
-                const data = await fetchPosts();
-                if (data) {
-                    await syncEditorialCalendar(data);
-                }
-            } else {
-                setPosts([]);
+            // Fetch posts regardless of client selection (handles "All Clients" view)
+            const data = await fetchPosts();
+
+            // Only sync editorial calendar if a specific client is selected
+            if (data && selectedClient) {
+                await syncEditorialCalendar(data);
             }
         };
         loadData();
@@ -588,6 +677,15 @@ export default function ContentKanban() {
         }
     };
 
+    const handleCloseEdit = () => {
+        closeEditModal();
+        const params = new URLSearchParams(searchParams);
+        if (params.has('edit_post')) {
+            params.delete('edit_post');
+            setSearchParams(params);
+        }
+    };
+
     const handleUpdatePost = async (e: React.FormEvent) => {
         e.preventDefault();
 
@@ -650,19 +748,52 @@ export default function ContentKanban() {
             <PageBreadcrumb pageTitle="Conteúdos" />
 
             <div className="flex flex-col h-[calc(100vh-200px)]">
-                <div className="flex justify-between items-center mb-6">
-                    {user?.role !== 'client' && (
-                        <div className="w-64 relative z-50">
-                            <Label>Cliente</Label>
+                <div className="flex justify-between items-center mb-6 gap-4">
+                    <div className="flex items-center gap-4 flex-1">
+                        {user?.role !== 'client' && (
+                            <div className="w-64 relative z-50">
+                                <Label>Cliente</Label>
+                                <Select
+                                    options={[
+                                        { value: "", label: "Todos os Clientes" },
+                                        ...clients.map(c => ({ value: String(c.id), label: c.name }))
+                                    ]}
+                                    placeholder="Selecione..."
+                                    onChange={(val) => setSelectedClient(val === "" ? "" : Number(val))}
+                                    defaultValue={String(selectedClient)}
+                                    className="mt-1"
+                                />
+                            </div>
+                        )}
+
+                        <div className="w-48 relative z-40">
+                            <Label>Status</Label>
                             <Select
-                                options={clients.map(c => ({ value: String(c.id), label: c.name }))}
-                                placeholder="Selecione..."
-                                onChange={(val) => setSelectedClient(Number(val))}
-                                defaultValue={String(selectedClient)}
+                                options={[
+                                    { value: "", label: "Todos" },
+                                    ...Object.entries(STATUS_LABELS).map(([key, label]) => ({ value: key, label }))
+                                ]}
+                                placeholder="Status"
+                                onChange={(val) => setSelectedStatus(val === "" ? "" : Number(val))}
+                                defaultValue={String(selectedStatus)}
                                 className="mt-1"
                             />
                         </div>
-                    )}
+
+                        <div className="w-48 relative z-30">
+                            <Label>Formato</Label>
+                            <Select
+                                options={[
+                                    { value: "", label: "Todos" },
+                                    ...formats.map(f => ({ value: String(f.id), label: `${f.platform} - ${f.name}` }))
+                                ]}
+                                placeholder="Formato"
+                                onChange={(val) => setSelectedFormat(val === "" ? "" : Number(val))}
+                                defaultValue={String(selectedFormat)}
+                                className="mt-1"
+                            />
+                        </div>
+                    </div>
                 </div>
 
                 <div className="flex items-center gap-2">
@@ -691,8 +822,23 @@ export default function ContentKanban() {
                             key={date}
                             date={date}
                             dayName={dayNames[index]}
-                            posts={posts.filter(p => p.post_date === date && (selectedClient ? p.client === selectedClient : true))}
+                            posts={posts.filter(p => {
+                                const matchDate = p.post_date === date;
+                                const matchClient = selectedClient ? p.client === selectedClient : true;
+                                const matchStatus = selectedStatus ? p.status === selectedStatus : true;
+                                const matchFormat = selectedFormat ? p.post_format === selectedFormat : true;
+
+                                const query = searchQuery.toLowerCase();
+                                const clientName = clients.find(c => c.id === p.client)?.name.toLowerCase() || "";
+                                const postSubject = p.subject.toLowerCase();
+                                const matchSearch = !query || clientName.includes(query) || postSubject.includes(query);
+
+                                return matchDate && matchClient && matchStatus && matchFormat && matchSearch;
+                            })}
                             formats={formats} // Pass formats
+                            clients={clients}
+                            medias={medias}
+                            postMedias={postMedias}
                             onMovePost={movePost}
                             onEdit={openEditPost}
                             onDelete={openDeletePost}
@@ -718,7 +864,7 @@ export default function ContentKanban() {
             {/* Edit Modal */}
             <EditPostModal
                 isOpen={isEditOpen}
-                onClose={closeEditModal}
+                onClose={handleCloseEdit}
                 onSubmit={handleUpdatePost}
                 formData={editFormData}
                 handleInputChange={handleEditInputChange}
