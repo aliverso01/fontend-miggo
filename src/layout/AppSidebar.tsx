@@ -65,6 +65,12 @@ const AppSidebar: React.FC = () => {
       name: "Conteúdos",
       path: "/content",
     },
+    {
+      icon: <ListIcon />,
+      name: "Logs",
+      path: "/admin/logs",
+      adminOnly: true,
+    },
   ];
 
   // Filter items based on user role

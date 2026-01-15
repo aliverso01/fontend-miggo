@@ -25,6 +25,7 @@ import ProtectedRoute from "./components/ProtectedRoute";
 import Home from "./pages/Dashboard/Home";
 import EditorialCalendar from "./pages/EditorialCalendar/EditorialCalendar";
 import HistoryList from "./pages/History/HistoryList";
+import IntegrationLogs from "./pages/Admin/IntegrationLogs";
 
 export default function App() {
   return (
@@ -66,6 +67,9 @@ export default function App() {
               {/* Charts */}
               <Route path="/line-chart" element={<LineChart />} />
               <Route path="/bar-chart" element={<BarChart />} />
+
+              {/* Admin */}
+              <Route path="/admin/logs" element={<IntegrationLogs />} />
             </Route>
           </Route>
 

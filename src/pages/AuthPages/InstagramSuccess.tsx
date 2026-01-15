@@ -98,7 +98,7 @@ export default function InstagramSuccess() {
                 </h2>
 
                 <p className="mb-6 text-gray-600 dark:text-gray-300">
-                    O perfil <strong>@{username || "usuário"}</strong> foi conectado corretamente ao cliente #{clientId}.
+                    O perfil <strong>@{username || "usuário"}</strong> foi conectado.
                 </p>
 
                 <div className="space-y-3">
