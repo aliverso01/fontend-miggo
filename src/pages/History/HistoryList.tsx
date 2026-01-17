@@ -55,7 +55,14 @@ export default function HistoryList() {
     const fetchHistory = async () => {
         setLoading(true);
         try {
-            const response = await fetch("/api/v1/history/list/", {
+            const user = JSON.parse(localStorage.getItem('user') || '{}');
+            const isClient = user.role === 'client';
+            let url = "/api/v1/history/list/";
+            if (isClient && user.id) {
+                url += `?user_id=${user.id}`;
+            }
+
+            const response = await fetch(url, {
                 headers: { Authorization: API_KEY },
             });
             if (!response.ok) throw new Error("Failed to fetch history");

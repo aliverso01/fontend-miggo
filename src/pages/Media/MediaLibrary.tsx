@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { useSearchParams } from "react-router";
 import PageMeta from "../../components/common/PageMeta";
 import PageBreadcrumb from "../../components/common/PageBreadCrumb";
 import Select from "../../components/form/Select";
@@ -29,6 +30,7 @@ export default function MediaLibrary() {
     const [selectedClientUserId, setSelectedClientUserId] = useState<string>("");
     const [selectedMedia, setSelectedMedia] = useState<Media | null>(null);
     const [loading, setLoading] = useState(false);
+    const [searchParams] = useSearchParams();
 
     // Using the API Key found in other files
     const API_KEY = "Api-Key vxQRQtgZ.M9ppHygHa4hS32hnkTshmm1kxTD3qCSS";
@@ -47,10 +49,22 @@ export default function MediaLibrary() {
                         const data = await response.json();
                         setClients(data);
 
+                        // Check for client_id in URL
+                        const clientIdParam = searchParams.get('client_id');
+                        if (clientIdParam) {
+                            const foundClient = data.find((c: Client) => c.id === Number(clientIdParam));
+                            if (foundClient) {
+                                setSelectedClientUserId(String(foundClient.user));
+                                return; // Skip default selection
+                            }
+                        }
+
                         // If there are clients, maybe select the first one by default?
                         // Or leave it empty to force selection.
                         // Let's leave it empty unless we want to autoshow something.
-                        if (data.length > 0) {
+                        if (data.length > 0 && !selectedClientUserId) {
+                            // If no param and no existing selection, default to first?
+                            // Prompt didn't specify default behavior for admin, but previous code did this:
                             setSelectedClientUserId(String(data[0].user));
                         }
                     }
@@ -65,7 +79,7 @@ export default function MediaLibrary() {
                 setSelectedClientUserId(String(user.id));
             }
         }
-    }, [isAdmin, user]);
+    }, [isAdmin, user, searchParams]);
 
     // Fetch Media
     useEffect(() => {

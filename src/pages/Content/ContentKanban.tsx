@@ -429,6 +429,9 @@ export default function ContentKanban() {
     };
 
     useEffect(() => {
+        // Guard: Client users must have a selected client (ID) before fetching to ensure data privacy and performance.
+        if (user?.role === 'client' && !selectedClient) return;
+
         // Sync state to URL
         const params: any = {};
         if (selectedClient) params.client_id = String(selectedClient);
@@ -446,7 +449,7 @@ export default function ContentKanban() {
         };
         loadData();
 
-    }, [selectedClient, currentDate]); // Removed setSearchParams from dependency to avoid loop if object ref changes (though hook usually stable)
+    }, [selectedClient, currentDate, user]); // Removed setSearchParams from dependency to avoid loop if object ref changes (though hook usually stable)
 
     const fetchMedias = async () => {
         try {

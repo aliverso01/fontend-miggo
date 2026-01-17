@@ -7,14 +7,14 @@ import {
     TableBody,
     TableCell,
     TableHeader,
-    TableRow,
+    TableRow
 } from "../../components/ui/table";
 import Button from "../../components/ui/button/Button";
 import { useModal } from "../../hooks/useModal";
 import { Modal } from "../../components/ui/modal";
 import Input from "../../components/form/input/InputField";
 import Label from "../../components/form/Label";
-import { PencilIcon, TrashBinIcon, PlusIcon, CalenderIcon } from "../../icons";
+import { PencilIcon, TrashBinIcon, PlusIcon, CalenderIcon, VideoIcon } from "../../icons";
 
 interface Client {
     id: number;
@@ -22,6 +22,7 @@ interface Client {
     email: string;
     phone: string;
     company: string | null;
+    active: boolean;
     created_at: string;
     user: number; // Linked user ID
 }
@@ -192,6 +193,7 @@ export default function ClientsList() {
                                     <TableCell isHeader className="px-5 py-3 font-medium text-gray-500 text-start text-theme-xs dark:text-gray-400">Nome</TableCell>
                                     <TableCell isHeader className="px-5 py-3 font-medium text-gray-500 text-start text-theme-xs dark:text-gray-400">Email</TableCell>
                                     <TableCell isHeader className="px-5 py-3 font-medium text-gray-500 text-start text-theme-xs dark:text-gray-400">Telefone</TableCell>
+                                    <TableCell isHeader className="px-5 py-3 font-medium text-gray-500 text-start text-theme-xs dark:text-gray-400">Ativo</TableCell>
                                     <TableCell isHeader className="px-5 py-3 font-medium text-gray-500 text-start text-theme-xs dark:text-gray-400">Ações</TableCell>
                                 </TableRow>
                             </TableHeader>
@@ -205,10 +207,14 @@ export default function ClientsList() {
                                         </TableCell>
                                         <TableCell className="px-5 py-4 text-gray-500 dark:text-gray-400">{client.email}</TableCell>
                                         <TableCell className="px-5 py-4 text-gray-500 dark:text-gray-400">{client.phone}</TableCell>
+                                        <TableCell className="px-5 py-4 text-gray-500 dark:text-gray-400">{client.active ? "Sim" : "Não"}</TableCell>
                                         <TableCell className="px-5 py-4 text-gray-500 dark:text-gray-400">
                                             <div className="flex items-center gap-2">
                                                 <Link to={`/editorial-calendar?client_id=${client.id}`} className="text-gray-500 hover:text-brand-500 dark:text-gray-400 dark:hover:text-brand-400" title="Calendário Editorial">
                                                     <CalenderIcon className="size-5" />
+                                                </Link>
+                                                <Link to={`/media-library?client_id=${client.id}`} className="text-gray-500 hover:text-brand-500 dark:text-gray-400 dark:hover:text-brand-400" title="Biblioteca de Midias">
+                                                    <VideoIcon className="size-5" />
                                                 </Link>
                                                 <button onClick={() => onEditClick(client)} className="text-gray-500 hover:text-brand-500 dark:text-gray-400 dark:hover:text-brand-400" title="Editar">
                                                     <PencilIcon className="size-5" />

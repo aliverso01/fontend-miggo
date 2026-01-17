@@ -48,6 +48,7 @@ interface Client {
 export default function Home() {
   const { user } = useAuthContext();
   const [clientCount, setClientCount] = useState<number>(0);
+  const [inactiveClientCount, setInactiveClientCount] = useState<number>(0);
   const [clients, setClients] = useState<Client[]>([]);
   const [postCount, setPostCount] = useState<number>(0);
   const [loading, setLoading] = useState<boolean>(true);
@@ -61,6 +62,13 @@ export default function Home() {
 
   const API_KEY = "Api-Key vxQRQtgZ.M9ppHygHa4hS32hnkTshmm1kxTD3qCSS";
 
+  // Client Activation State
+  const [isClientActive, setIsClientActive] = useState<boolean>(true);
+  const [activationCode, setActivationCode] = useState("");
+  const [activationError, setActivationError] = useState("");
+  const [activationSuccess, setActivationSuccess] = useState("");
+  const [currentClientId, setCurrentClientId] = useState<number | null>(null);
+
   useEffect(() => {
     const fetchData = async () => {
       // Wait for user to be loaded to apply role filters
@@ -68,112 +76,162 @@ export default function Home() {
 
       setLoading(true);
       try {
-        const [clientsRes, postsRes, historyRes, editorialRes] = await Promise.all([
+        // Build Promise array
+        const promises: Promise<Response>[] = [
           fetch("/api/v1/client/list/", { headers: { Authorization: API_KEY } }),
-          fetch("/api/v1/post/list/", { headers: { Authorization: API_KEY } }),
-          fetch("/api/v1/history/list/", { headers: { Authorization: API_KEY } }),
-          fetch("/api/v1/editorial-calendar/list/", { headers: { Authorization: API_KEY } })
-        ]);
+          // Post List replaced by Report? Home still needs basic list? No, purely stats in Home now.
+          // BUT - is 'posts' used elsewhere? No, only for stats.
+          // fetch("/api/v1/post/list/", { headers: { Authorization: API_KEY } }), 
+          // History with user_id based on role
+          user.role === 'client'
+            ? fetch(`/api/v1/history/list/?user_id=${user.id}`, { headers: { Authorization: API_KEY } })
+            : fetch("/api/v1/history/list/", { headers: { Authorization: API_KEY } }),
 
-        let allClients: Client[] = [];
-        if (clientsRes.ok) {
-          allClients = await clientsRes.json();
-          setClientCount(allClients.length);
-          setClients(allClients);
+          fetch("/api/v1/editorial-calendar/list/", { headers: { Authorization: API_KEY } })
+        ];
+
+        // Add Reports
+        // Client Report (Admin Only)
+        // Post Report (All)
+
+        let clientReportPromise: Promise<Response> | null = null;
+        let postReportPromise: Promise<Response> | null = null;
+
+        if (user.role !== 'client') { // Admin/Staff
+          clientReportPromise = fetch("/api/v1/history/report/clients/", { headers: { Authorization: API_KEY } });
+          postReportPromise = fetch("/api/v1/history/report/posts/", { headers: { Authorization: API_KEY } });
         }
 
-        if (postsRes.ok) {
-          let posts = await postsRes.json();
+        // We handle Client-specific logic after basic fetches because we need client ID first?
+        // Actually, for "client" role, we need to know their client ID to fetch their post report.
 
-          // Filter for Client Role
+        // Execute initial batch
+        const [clientsRes, historyRes, editorialRes] = await Promise.all(promises);
+
+        let allClients: Client[] = [];
+        let myClient: Client | undefined;
+
+        if (clientsRes.ok) {
+          allClients = await clientsRes.json();
+          // We don't set clientCount from this list anymore if we use the report for admins,
+          // but let's keep it sync for now or rely on report.
+          setClients(allClients);
+
           if (user.role === 'client') {
-            const myClient = allClients.find(c => c.user === user.id);
+            myClient = allClients.find(c => c.user === user.id);
             if (myClient) {
-              posts = posts.filter((p: any) => p.client === myClient.id);
-            } else {
-              posts = [];
+              setCurrentClientId(myClient.id);
+              // Fetch Post Report for this Client
+              postReportPromise = fetch(`/api/v1/history/report/posts/?client_id=${myClient.id}`, { headers: { Authorization: API_KEY } });
+
+              // Also check active status logic
+              try {
+                const clientDetailRes = await fetch(`/api/v1/client/retrieve/${myClient.id}/`, { headers: { Authorization: API_KEY } });
+                if (clientDetailRes.ok) {
+                  const clientDetail = await clientDetailRes.json();
+                  setIsClientActive(clientDetail.active);
+                } else if ('active' in myClient) {
+                  setIsClientActive((myClient as any).active);
+                }
+              } catch (e) { console.error(e) }
             }
           }
+        }
 
-          setPostCount(posts.length);
-
-          // Process Chart Data
-          const statusCounts: Record<number, number> = {};
-
-          posts.forEach((post: any) => {
-            const status = post.status || 0;
-            // Exclude ID 1 as requested
-            if (status !== 1) {
-              statusCounts[status] = (statusCounts[status] || 0) + 1;
-            }
-          });
-
-          // Prepare data for chart
-          const categories: string[] = [];
-          const data: number[] = [];
-
-          // Sort by label key or specific order? Let's iterate predefined keys to keep order or just populated ones.
-          // Iterating all relevant keys (2-11) to show even 0 counts? Or just populated?
-          // Usually better to show populated or all common ones. Let's show all except 1.
-          Object.keys(STATUS_LABELS).map(Number).forEach(key => {
-            if (key !== 1) {
-              categories.push(STATUS_LABELS[key]);
-              data.push(statusCounts[key] || 0);
-            }
-          });
-
-          setChartData({
-            series: [{
-              name: "Posts",
-              data: data
-            }],
-            options: {
-              chart: {
-                type: 'bar',
-                height: 350,
-                toolbar: { show: false }
-              },
-              plotOptions: {
-                bar: {
-                  horizontal: false,
-                  columnWidth: '55%',
-                  borderRadius: 4
-                },
-              },
-              dataLabels: {
-                enabled: false
-              },
-              stroke: {
-                show: true,
-                width: 2,
-                colors: ['transparent']
-              },
-              xaxis: {
-                categories: categories,
-                axisBorder: { show: false },
-                axisTicks: { show: false },
-              },
-              yaxis: {
-                title: {
-                  text: 'Quantidade'
-                }
-              },
-              fill: {
-                opacity: 1
-              },
-              tooltip: {
-                y: {
-                  formatter: function (val) {
-                    return val + " posts"
-                  }
-                }
-              },
-              colors: ['#4F46E5'], // Indigo-600
-              grid: {
-                borderColor: '#f1f1f1',
+        // Handle Reports
+        if (clientReportPromise) {
+          try {
+            const res = await clientReportPromise;
+            if (res.ok) {
+              const data = await res.json();
+              // Resp format: [{"total_clients": 3, "details": {"active": 2, "inactive": 1}}]
+              if (Array.isArray(data) && data.length > 0) {
+                // Use active count? or Total? User said "Clientes Ativos" in UI label
+                setClientCount(data[0].details?.active || 0); // or data[0].total_clients? Label says Active.
+                setInactiveClientCount(data[0].details?.inactive || 0);
               }
             }
-          });
+          } catch (e) { console.error("Client report error", e); }
+        }
+
+        if (postReportPromise) {
+          try {
+            const res = await postReportPromise;
+            if (res.ok) {
+              const data = await res.json();
+              // Resp format: { "total_posts": 94, "details": [ {"pending": 80}, ... ] }
+              setPostCount(data.total_posts || 0);
+
+              // Chart Data Processing
+              const details: Record<string, number>[] = data.details || [];
+              // Flatten details to a single object: { pending: 80, draft: 2 ... }
+              const statsMap: Record<string, number> = {};
+              details.forEach(item => {
+                const key = Object.keys(item)[0];
+                statsMap[key] = item[key];
+              });
+
+              // Map internal keys to our display labels
+              // STATUS_LABELS key is ID, value is Name.
+              // We need a map from Key -> Label.
+              // Assuming keys match standard status names approximately.
+
+              // Map keys to Portuguese labels used in STATUS_LABELS?
+              // Or map backend keys to STATUS_LABELS IDs?
+              // Backend keys: pending, draft, scheduled, sent, holding, paused, finished, approved, uploading, published, canceled, correction
+              // STATUS_LABELS: 
+              // 1: A CRIAR (?), 2: RASCUNHO (draft), 3: AGENDADO (scheduled), 4: ENVIADO (sent), 
+              // 5: PENDENTE (pending), 6: PAUSADO (paused), 7: FINALIZADO (finished), 8: APROVADO (approved)
+              // 9: ENVIANDO (uploading?), 10: PUBLICADO (published), 11: CANCELADO (canceled), 12: CORREÇÃO (correction)
+
+              const keyToLabel: Record<string, string> = {
+                'draft': STATUS_LABELS[2],
+                'scheduled': STATUS_LABELS[3],
+                'sent': STATUS_LABELS[4], // or 'pending'? 
+                'pending': STATUS_LABELS[5],
+                'holding': 'AGUARDANDO', // No exact match in provided ID list? Maybe ID 1? Or just show as is?
+                'paused': STATUS_LABELS[6],
+                'finished': STATUS_LABELS[7],
+                'approved': STATUS_LABELS[8],
+                'uploading': STATUS_LABELS[9],
+                'published': STATUS_LABELS[10],
+                'canceled': STATUS_LABELS[11],
+                'correction': STATUS_LABELS[12]
+              };
+
+              const categories: string[] = [];
+              const chartDataArray: number[] = [];
+
+              // We can iterate the response keys or fixed list.
+              // Let's iterate the map to ensure order if we want, or just the data keys.
+              // Let's use the provided keys from backend to show what's actually there.
+
+              Object.keys(statsMap).forEach(key => {
+                // Skip if count 0? Or show?
+                if (statsMap[key] > 0) {
+                  categories.push(keyToLabel[key] || key.toUpperCase());
+                  chartDataArray.push(statsMap[key]);
+                }
+              });
+
+              setChartData({
+                series: [{ name: "Posts", data: chartDataArray }],
+                options: {
+                  chart: { type: 'bar', height: 350, toolbar: { show: false } },
+                  plotOptions: { bar: { horizontal: false, columnWidth: '55%', borderRadius: 4 } },
+                  dataLabels: { enabled: false },
+                  stroke: { show: true, width: 2, colors: ['transparent'] },
+                  xaxis: { categories: categories, axisBorder: { show: false }, axisTicks: { show: false } },
+                  yaxis: { title: { text: 'Quantidade' } },
+                  fill: { opacity: 1 },
+                  tooltip: { y: { formatter: (val) => val + " posts" } },
+                  colors: ['#4F46E5'],
+                  grid: { borderColor: '#f1f1f1' }
+                }
+              });
+
+            }
+          } catch (e) { console.error("Post report error", e); }
         }
 
         if (historyRes.ok) {
@@ -221,6 +279,60 @@ export default function Home() {
     fetchBriefing();
   }, [user, clients]);
 
+  const handleActivate = async () => {
+    const code = activationCode.trim();
+    if (!currentClientId || !code) {
+      setActivationError("Activation code is required");
+      return;
+    }
+    setActivationError("");
+    setActivationSuccess("");
+
+    try {
+      const response = await fetch(`/api/v1/client/activate-account/${currentClientId}/`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: API_KEY
+        },
+        // Sending both common keys to potential backend handling to ensure one catch
+        // Also ensure it is a string
+        body: JSON.stringify({ code: code, activation_code: code })
+      });
+
+      if (response.ok) {
+        setActivationSuccess("Conta ativada com sucesso!");
+        setIsClientActive(true);
+        // Refresh page or context? 
+        // Since AppLayout also checks active status on mount, user might need to refresh or we update global.
+        // For now, local state update hides the banner.
+      } else {
+        const data = await response.json();
+        // Try to read common error fields or use default
+        const msg = data.message || data.detail || (data.code ? data.code[0] : "Erro ao ativar conta.");
+        setActivationError(msg);
+      }
+    } catch (e) {
+      setActivationError("Erro de conexão.");
+    }
+  };
+
+  const handleResendCode = async () => {
+    if (!currentClientId) return;
+    try {
+      const response = await fetch(`/api/v1/client/generate-activation-code/${currentClientId}/`, {
+        headers: { Authorization: API_KEY }
+      });
+      if (response.ok) {
+        alert("Código reenviado para o WhatsApp!");
+      } else {
+        alert("Erro ao reenviar código.");
+      }
+    } catch (e) {
+      alert("Erro ao reenviar código.");
+    }
+  };
+
   const getDayLabel = (englishDay: string) => {
     const map: Record<string, string> = {
       "Monday": "Segunda-feira",
@@ -242,6 +354,46 @@ export default function Home() {
         title="Dashboard | Miggo"
         description="Visão geral da sua conta Miggo"
       />
+
+      {!isClientActive && user?.role === 'client' && (
+        <div className="mb-6 rounded-2xl border border-red-200 bg-red-50 p-6 dark:border-red-900/30 dark:bg-red-900/10">
+          <h3 className="text-lg font-semibold text-red-800 dark:text-red-400 mb-2">Conta não ativada</h3>
+          <p className="text-red-600 dark:text-red-300 mb-4">
+            Sua conta precisa ser ativada para acessar todas as funcionalidades (como criar posts).
+            Por favor, insira o código de 6 dígitos enviado para o seu WhatsApp cadastrado.
+          </p>
+
+          <div className="flex flex-col sm:flex-row gap-3 items-start sm:items-center">
+            <input
+              type="text"
+              placeholder="Código (ex: 123456)"
+              className="px-4 py-2 rounded-lg border border-gray-300 dark:border-gray-600 dark:bg-gray-800 focus:ring-2 focus:ring-brand-500 outline-none w-full sm:w-48"
+              value={activationCode}
+              onChange={(e) => setActivationCode(e.target.value)}
+            />
+            <button
+              onClick={handleActivate}
+              className="px-4 py-2 bg-brand-500 hover:bg-brand-600 text-white rounded-lg font-medium transition-colors"
+            >
+              Ativar Conta
+            </button>
+            <button
+              onClick={handleResendCode}
+              className="px-4 py-2 text-brand-600 hover:text-brand-700 dark:text-brand-400 font-medium underline text-sm"
+            >
+              Reenviar Código via WhatsApp
+            </button>
+          </div>
+
+          {activationError && (
+            <p className="mt-3 text-sm font-medium text-red-600">{activationError}</p>
+          )}
+          {activationSuccess && (
+            <p className="mt-3 text-sm font-medium text-green-600">{activationSuccess}</p>
+          )}
+        </div>
+      )}
+
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 md:gap-6 mb-6">
 
         {/* Clients Card OR Briefing Widget */}
@@ -272,13 +424,23 @@ export default function Home() {
             </div>
 
             <div className="flex items-end justify-between mt-5">
-              <div>
-                <span className="text-sm text-gray-500 dark:text-gray-400">
-                  Clientes Ativos
-                </span>
-                <h4 className="mt-2 font-bold text-gray-800 text-title-sm dark:text-white/90">
-                  {loading ? "..." : clientCount}
-                </h4>
+              <div className="flex gap-8">
+                <div>
+                  <span className="text-sm text-gray-500 dark:text-gray-400">
+                    Clientes Ativos
+                  </span>
+                  <h4 className="mt-2 font-bold text-gray-800 text-title-sm dark:text-white/90">
+                    {loading ? "..." : clientCount}
+                  </h4>
+                </div>
+                <div>
+                  <span className="text-sm text-gray-500 dark:text-gray-400">
+                    Inativos
+                  </span>
+                  <h4 className="mt-2 font-bold text-gray-800 text-title-sm dark:text-white/90">
+                    {loading ? "..." : inactiveClientCount}
+                  </h4>
+                </div>
               </div>
             </div>
           </div>
