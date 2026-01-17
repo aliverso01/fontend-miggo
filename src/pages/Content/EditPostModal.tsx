@@ -31,6 +31,7 @@ interface EditPostModalProps {
     onDeleteMediaLink: (linkId: number) => void;
     onUploadMedia: (e: React.ChangeEvent<HTMLInputElement>) => void;
     onStatusAction: (status: number) => void;
+    userRole?: string;
 }
 
 export default function EditPostModal({
@@ -46,10 +47,13 @@ export default function EditPostModal({
     currentPostId,
     onDeleteMediaLink,
     onUploadMedia,
-    onStatusAction
+    onStatusAction,
+    userRole
 }: EditPostModalProps) {
     const [selectedImage, setSelectedImage] = useState<string | null>(null);
     const [pdfBlobUrl, setPdfBlobUrl] = useState<string | null>(null);
+
+    const isClient = userRole === 'client';
 
     useEffect(() => {
         let objectUrl: string | null = null;
@@ -100,6 +104,7 @@ export default function EditPostModal({
             case 9: return { label: "ENVIANDO", color: "bg-purple-100 text-purple-800" };
             case 10: return { label: "PUBLICADO", color: "bg-green-100 text-green-800" };
             case 11: return { label: "CANCELADO", color: "bg-red-100 text-red-800" };
+            case 12: return { label: "CORREÇÃO", color: "bg-red-100 text-red-800" };
             default: return { label: "DESCONHECIDO", color: "bg-gray-100 text-gray-800" };
         }
     };
@@ -172,11 +177,19 @@ export default function EditPostModal({
                             </div>
                         </div>
 
-                        <h3 className="text-lg font-semibold text-gray-800 dark:text-white mb-6">Editar Post</h3>
+                        <h3 className="text-lg font-semibold text-gray-800 dark:text-white mb-6">
+                            {isClient ? "Visualizar Post" : "Editar Post"}
+                        </h3>
                         <form id="edit-post-form" onSubmit={onSubmit} className="space-y-6">
                             <div>
                                 <Label>Assunto</Label>
-                                <Input name="subject" value={formData.subject} onChange={handleInputChange} required />
+                                <Input
+                                    name="subject"
+                                    value={formData.subject}
+                                    onChange={handleInputChange}
+                                    required
+                                    disabled={isClient}
+                                />
                             </div>
 
                             {/* Media Display */}
@@ -187,44 +200,49 @@ export default function EditPostModal({
                                         {attachedMediaDetails.map(media => (
                                             <div key={media.id} className="relative aspect-video rounded-lg overflow-hidden border border-gray-200 group">
                                                 {renderMediaThumbnail(media)}
-                                                <button
-                                                    type="button"
-                                                    onClick={() => onDeleteMediaLink(media.linkId)}
-                                                    className="absolute top-1 right-1 bg-black/50 hover:bg-red-500 text-white rounded-full p-1 opacity-100 transition-all"
-                                                    title="Remover mídia"
-                                                >
-                                                    <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                                                    </svg>
-                                                </button>
+                                                {!isClient && (
+                                                    <button
+                                                        type="button"
+                                                        onClick={() => onDeleteMediaLink(media.linkId)}
+                                                        className="absolute top-1 right-1 bg-black/50 hover:bg-red-500 text-white rounded-full p-1 opacity-100 transition-all"
+                                                        title="Remover mídia"
+                                                    >
+                                                        <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                                                        </svg>
+                                                    </button>
+                                                )}
                                             </div>
                                         ))}
                                     </div>
                                 </div>
                             )}
 
-                            <div>
-                                <Label>Adicionar Mídia</Label>
-                                <div className="relative">
-                                    <input
-                                        type="file"
-                                        multiple
-                                        className="w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-brand-50 file:text-brand-700 hover:file:bg-brand-100 dark:file:bg-brand-500/10 dark:file:text-brand-400"
-                                        onChange={onUploadMedia}
-                                    />
+                            {!isClient && (
+                                <div>
+                                    <Label>Adicionar Mídia</Label>
+                                    <div className="relative">
+                                        <input
+                                            type="file"
+                                            multiple
+                                            className="w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-brand-50 file:text-brand-700 hover:file:bg-brand-100 dark:file:bg-brand-500/10 dark:file:text-brand-400"
+                                            onChange={onUploadMedia}
+                                        />
+                                    </div>
+                                    <p className="mt-1 text-xs text-gray-500">As imagens serão salvas automaticamente ao selecionar.</p>
                                 </div>
-                                <p className="mt-1 text-xs text-gray-500">As imagens serão salvas automaticamente ao selecionar.</p>
-                            </div>
+                            )}
 
                             <div>
                                 <Label>Conteúdo</Label>
                                 <textarea
                                     name="content"
                                     rows={8}
-                                    className="w-full rounded-lg border border-gray-300 bg-transparent px-4 py-2.5 text-sm outline-none focus:border-brand-300 dark:border-gray-700 dark:bg-gray-900 dark:text-white"
+                                    className="w-full rounded-lg border border-gray-300 bg-transparent px-4 py-2.5 text-sm outline-none focus:border-brand-300 dark:border-gray-700 dark:bg-gray-900 dark:text-white disabled:opacity-60 disabled:bg-gray-50 dark:disabled:bg-gray-800"
                                     value={formData.content}
                                     onChange={handleInputChange as any}
                                     required
+                                    disabled={isClient}
                                 />
                             </div>
                             <div className="grid grid-cols-2 gap-4">
@@ -242,8 +260,9 @@ export default function EditPostModal({
                                             altInput: true,
                                             altFormat: "d/m/Y",
                                         }}
-                                        className="w-full rounded-lg border border-gray-300 bg-transparent px-4 py-2.5 text-sm outline-none focus:border-brand-300 dark:border-gray-700 dark:bg-gray-900 dark:text-white"
+                                        className="w-full rounded-lg border border-gray-300 bg-transparent px-4 py-2.5 text-sm outline-none focus:border-brand-300 dark:border-gray-700 dark:bg-gray-900 dark:text-white disabled:opacity-60 disabled:bg-gray-50 dark:disabled:bg-gray-800"
                                         placeholder="Selecione a data"
+                                        disabled={isClient}
                                     />
                                 </div>
                                 <div>
@@ -267,8 +286,9 @@ export default function EditPostModal({
                                             time_24hr: true,
                                             locale: Portuguese,
                                         }}
-                                        className="w-full rounded-lg border border-gray-300 bg-transparent px-4 py-2.5 text-sm outline-none focus:border-brand-300 dark:border-gray-700 dark:bg-gray-900 dark:text-white"
+                                        className="w-full rounded-lg border border-gray-300 bg-transparent px-4 py-2.5 text-sm outline-none focus:border-brand-300 dark:border-gray-700 dark:bg-gray-900 dark:text-white disabled:opacity-60 disabled:bg-gray-50 dark:disabled:bg-gray-800"
                                         placeholder="Selecione a hora"
+                                        disabled={isClient}
                                     />
                                 </div>
                             </div>
@@ -276,10 +296,11 @@ export default function EditPostModal({
                                 <Label>Formato</Label>
                                 <select
                                     name="post_format"
-                                    className="w-full h-11 rounded-lg border border-gray-300 bg-transparent px-4 py-2.5 text-sm outline-none focus:border-brand-300 dark:border-gray-700 dark:bg-gray-900 dark:text-white"
+                                    className="w-full h-11 rounded-lg border border-gray-300 bg-transparent px-4 py-2.5 text-sm outline-none focus:border-brand-300 dark:border-gray-700 dark:bg-gray-900 dark:text-white disabled:opacity-60 disabled:bg-gray-50 dark:disabled:bg-gray-800"
                                     value={formData.post_format}
                                     onChange={handleInputChange as any}
                                     required
+                                    disabled={isClient}
                                 >
                                     <option value="" disabled>Selecione...</option>
                                     {formats.map(f => (
@@ -302,59 +323,84 @@ export default function EditPostModal({
                         </div>
 
                         <div className="flex flex-col gap-3 w-full">
-                            <Button
-                                className="w-full bg-[#7ACAC9] hover:bg-[#68b0af] text-white justify-start"
-                                startIcon={<CheckLineIcon className="w-5 h-5" />}
-                                onClick={() => document.getElementById('edit-post-form')?.dispatchEvent(new Event('submit', { cancelable: true, bubbles: true }))}
-                                disabled={loading}
-                            >
-                                Salvar
-                            </Button>
 
-                            <Button
-                                className="w-full bg-[#7ACAC9] hover:bg-[#68b0af] text-white justify-start"
-                                startIcon={<CalenderIcon className="w-5 h-5" />}
-                                onClick={() => onStatusAction(3)} // Agendado
-                                disabled={loading}
-                            >
-                                Agendar Envio
-                            </Button>
+                            {isClient ? (
+                                <>
+                                    <Button
+                                        className="w-full bg-green-500 hover:bg-green-600 text-white justify-start"
+                                        startIcon={<CheckLineIcon className="w-5 h-5" />}
+                                        onClick={() => onStatusAction(3)} // Aprovar e Agendar
+                                        disabled={loading}
+                                    >
+                                        Aprovar e Agendar
+                                    </Button>
 
-                            <Button
-                                className="w-full bg-[#7ACAC9] hover:bg-[#68b0af] text-white justify-start"
-                                startIcon={<TimeIcon className="w-5 h-5" />}
-                                onClick={() => onStatusAction(6)} // Pausado
-                                disabled={loading}
-                            >
-                                Pausar envio
-                            </Button>
+                                    <Button
+                                        className="w-full bg-red-500 hover:bg-red-600 text-white justify-start"
+                                        startIcon={<CloseIcon className="w-5 h-5" />} // Using X icon for correction
+                                        onClick={() => onStatusAction(12)} // Solicitar Correção
+                                        disabled={loading}
+                                    >
+                                        Solicitar ajuste
+                                    </Button>
+                                </>
+                            ) : (
+                                <>
+                                    <Button
+                                        className="w-full bg-[#7ACAC9] hover:bg-[#68b0af] text-white justify-start"
+                                        startIcon={<CheckLineIcon className="w-5 h-5" />}
+                                        onClick={() => document.getElementById('edit-post-form')?.dispatchEvent(new Event('submit', { cancelable: true, bubbles: true }))}
+                                        disabled={loading}
+                                    >
+                                        Salvar
+                                    </Button>
 
-                            <Button
-                                className="w-full bg-[#7ACAC9] hover:bg-[#68b0af] text-white justify-start"
-                                startIcon={<TaskIcon className="w-5 h-5" />}
-                                onClick={() => onStatusAction(5)} // Pendente (Para Revisão)
-                                disabled={loading}
-                            >
-                                Enviar Para Revisão
-                            </Button>
+                                    <Button
+                                        className="w-full bg-[#7ACAC9] hover:bg-[#68b0af] text-white justify-start"
+                                        startIcon={<CalenderIcon className="w-5 h-5" />}
+                                        onClick={() => onStatusAction(3)} // Agendado
+                                        disabled={loading}
+                                    >
+                                        Agendar Envio
+                                    </Button>
 
-                            <Button
-                                className="w-full bg-[#7ACAC9] hover:bg-[#68b0af] text-white justify-start"
-                                startIcon={<PaperPlaneIcon className="w-5 h-5" />}
-                                onClick={() => onStatusAction(10)} // Publicado
-                                disabled={loading}
-                            >
-                                Publicar no Instagram
-                            </Button>
+                                    <Button
+                                        className="w-full bg-[#7ACAC9] hover:bg-[#68b0af] text-white justify-start"
+                                        startIcon={<TimeIcon className="w-5 h-5" />}
+                                        onClick={() => onStatusAction(6)} // Pausado
+                                        disabled={loading}
+                                    >
+                                        Pausar envio
+                                    </Button>
 
-                            <Button
-                                className="w-full bg-slate-500 hover:bg-slate-600 text-white justify-start"
-                                startIcon={<CloseIcon className="w-5 h-5" />}
-                                onClick={() => onStatusAction(11)} // Cancelado
-                                disabled={loading}
-                            >
-                                Cancelar
-                            </Button>
+                                    <Button
+                                        className="w-full bg-[#7ACAC9] hover:bg-[#68b0af] text-white justify-start"
+                                        startIcon={<TaskIcon className="w-5 h-5" />}
+                                        onClick={() => onStatusAction(5)} // Pendente (Para Revisão)
+                                        disabled={loading}
+                                    >
+                                        Enviar Para Revisão
+                                    </Button>
+
+                                    <Button
+                                        className="w-full bg-[#7ACAC9] hover:bg-[#68b0af] text-white justify-start"
+                                        startIcon={<PaperPlaneIcon className="w-5 h-5" />}
+                                        onClick={() => onStatusAction(10)} // Publicado
+                                        disabled={loading}
+                                    >
+                                        Publicar no Instagram
+                                    </Button>
+
+                                    <Button
+                                        className="w-full bg-slate-500 hover:bg-slate-600 text-white justify-start"
+                                        startIcon={<CloseIcon className="w-5 h-5" />}
+                                        onClick={() => onStatusAction(11)} // Cancelado
+                                        disabled={loading}
+                                    >
+                                        Cancelar
+                                    </Button>
+                                </>
+                            )}
                         </div>
                     </div>
                 </div>

@@ -43,6 +43,7 @@ export default function PostCard({ post, formats, clients, medias, postMedias, o
             case 9: return { label: "ENVIANDO", color: "bg-purple-100 text-purple-800" };
             case 10: return { label: "PUBLICADO", color: "bg-green-100 text-green-800" };
             case 11: return { label: "CANCELADO", color: "bg-red-100 text-red-800" };
+            case 12: return { label: "CORREÇÃO", color: "bg-red-100 text-red-800" };
             default: return { label: "DESCONHECIDO", color: "bg-gray-100 text-gray-800" };
         }
     };

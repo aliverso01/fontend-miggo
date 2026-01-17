@@ -26,6 +26,7 @@ import Home from "./pages/Dashboard/Home";
 import EditorialCalendar from "./pages/EditorialCalendar/EditorialCalendar";
 import HistoryList from "./pages/History/HistoryList";
 import IntegrationLogs from "./pages/Admin/IntegrationLogs";
+import MediaLibrary from "./pages/Media/MediaLibrary";
 
 export default function App() {
   return (
@@ -46,6 +47,7 @@ export default function App() {
               <Route path="/calendar" element={<Calendar />} />
               <Route path="/editorial-calendar" element={<EditorialCalendar />} />
               <Route path="/history" element={<HistoryList />} />
+              <Route path="/media-library" element={<MediaLibrary />} />
               <Route path="/blank" element={<Blank />} />
               <Route path="/instagram/success/:clientId/*" element={<InstagramSuccess />} />
               <Route path="/linkedin/success/:clientId/*" element={<InstagramSuccess />} />

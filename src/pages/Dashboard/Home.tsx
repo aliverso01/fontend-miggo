@@ -17,7 +17,8 @@ const STATUS_LABELS: Record<number, string> = {
   8: "APROVADO",
   9: "ENVIANDO",
   10: "PUBLICADO",
-  11: "CANCELADO"
+  11: "CANCELADO",
+  12: "CORREÇÃO"
 };
 
 interface HistoryItem {

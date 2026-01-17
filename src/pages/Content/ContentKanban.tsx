@@ -75,7 +75,8 @@ const STATUS_LABELS: Record<number, string> = {
     8: "APROVADO",
     9: "ENVIANDO",
     10: "PUBLICADO",
-    11: "CANCELADO"
+    11: "CANCELADO",
+    12: "CORREÇÃO"
 };
 
 export default function ContentKanban() {
@@ -876,6 +877,7 @@ export default function ContentKanban() {
                 currentPostId={currentPost?.id}
                 onDeleteMediaLink={handleDeleteMediaLink}
                 onStatusAction={handleStatusAction}
+                userRole={user?.role}
             />
 
             {/* Delete Modal */}

@@ -242,19 +242,20 @@ export default function SocialConnections() {
             <h4 className="mb-6 text-lg font-semibold text-gray-800 dark:text-white/90">
                 Conexões Sociais
             </h4>
-
-            <div className="mb-6">
-                <Label>Cliente</Label>
-                <div className="max-w-md">
-                    <Select
-                        options={clients.map(c => ({ value: String(c.id), label: c.name }))}
-                        placeholder="Selecione um cliente"
-                        onChange={(val) => setSelectedClient(Number(val))}
-                        defaultValue={String(selectedClient)}
-                        disabled={clients.length === 0}
-                    />
+            {user?.role === "admin" && (
+                <div className="mb-6">
+                    <Label>Cliente</Label>
+                    <div className="max-w-md">
+                        <Select
+                            options={clients.map(c => ({ value: String(c.id), label: c.name }))}
+                            placeholder="Selecione um cliente"
+                            onChange={(val) => setSelectedClient(Number(val))}
+                            defaultValue={String(selectedClient)}
+                            disabled={clients.length === 0}
+                        />
+                    </div>
                 </div>
-            </div>
+            )}
 
             <div className="flex flex-col gap-4">
                 {socialNetworks.map((network) => {

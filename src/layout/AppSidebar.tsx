@@ -6,7 +6,6 @@ import {
   GridIcon,
   HorizontaLDots,
   ListIcon,
-  UserCircleIcon,
   GroupIcon,
   ChevronDownIcon,
 } from "../icons";
@@ -50,11 +49,6 @@ const AppSidebar: React.FC = () => {
       path: "/", // Assuming simple dashboard, or maybe /dashboard
     },
     {
-      icon: <UserCircleIcon />,
-      name: "Perfil",
-      path: "/profile",
-    },
-    {
       icon: <GroupIcon />,
       name: "Clientes",
       path: "/clients",
@@ -64,6 +58,11 @@ const AppSidebar: React.FC = () => {
       icon: <ListIcon />,
       name: "Conteúdos",
       path: "/content",
+    },
+    {
+      icon: <GridIcon />, // Reusing GridIcon or maybe another icon if available. I see GridIcon imported at top.
+      name: "Biblioteca",
+      path: "/media-library",
     },
     {
       icon: <ListIcon />,

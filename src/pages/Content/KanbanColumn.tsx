@@ -1,5 +1,5 @@
 import { useDrop } from "react-dnd";
-import PostCard from "./PostCard";
+import PostCard from "./PostCardAdmin";
 import { Client, Format, Media, Post, PostMediaLink } from "./ContentKanban";
 
 interface KanbanColumnProps {
