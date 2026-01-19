@@ -8,6 +8,7 @@ import {
   ListIcon,
   GroupIcon,
   ChevronDownIcon,
+  DollarLineIcon,
 } from "../icons";
 import { useSidebar } from "../context/SidebarContext";
 import { useAuth } from "../hooks/authHook";
@@ -58,6 +59,11 @@ const AppSidebar: React.FC = () => {
       icon: <ListIcon />,
       name: "Conteúdos",
       path: "/content",
+    },
+    {
+      icon: <DollarLineIcon />,
+      name: "Planos",
+      path: "/plans",
     },
     {
       icon: <GridIcon />, // Reusing GridIcon or maybe another icon if available. I see GridIcon imported at top.

@@ -13,9 +13,10 @@ interface KanbanColumnProps {
     onMovePost: (id: number, date: string) => void;
     onEdit: (post: Post) => void;
     onDelete: (post: Post) => void;
+    onPublish: (post: Post) => void;
 }
 
-export default function KanbanColumn({ date, dayName, posts, formats, clients, medias, postMedias, onMovePost, onEdit, onDelete }: KanbanColumnProps) {
+export default function KanbanColumn({ date, dayName, posts, formats, clients, medias, postMedias, onMovePost, onEdit, onDelete, onPublish }: KanbanColumnProps) {
     const [{ isOver }, drop] = useDrop(() => ({
         accept: "POST",
         drop: (item: { id: number; date: string }) => {
@@ -59,6 +60,7 @@ export default function KanbanColumn({ date, dayName, posts, formats, clients, m
                         postMedias={postMedias}
                         onEdit={onEdit}
                         onDelete={onDelete}
+                        onPublish={onPublish}
                     />
                 ))}
             </div>

@@ -27,6 +27,7 @@ import EditorialCalendar from "./pages/EditorialCalendar/EditorialCalendar";
 import HistoryList from "./pages/History/HistoryList";
 import IntegrationLogs from "./pages/Admin/IntegrationLogs";
 import MediaLibrary from "./pages/Media/MediaLibrary";
+import Plans from "./pages/Subscription/Plans";
 
 export default function App() {
   return (
@@ -42,6 +43,7 @@ export default function App() {
               {/* Others Page */}
               <Route path="/profile" element={<UserProfiles />} />
               <Route path="/clients" element={<ClientsList />} />
+              <Route path="/plans" element={<Plans />} />
               <Route path="/briefing" element={<Briefing />} />
               <Route path="/content" element={<ContentKanban />} />
               <Route path="/calendar" element={<Calendar />} />

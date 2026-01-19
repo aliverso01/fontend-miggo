@@ -746,6 +746,40 @@ export default function ContentKanban() {
 
 
 
+    const handlePublishPost = async (post: Post) => {
+        // Find PostMediaLink ID
+        const link = postMedias.find(pm => pm.post === post.id);
+
+        if (!link) {
+            alert("Não é possível publicar: Post sem mídia vinculada.");
+            return;
+        }
+
+        if (!confirm("Confirmar a publicação deste post?")) return;
+
+        try {
+            const response = await fetch("http://localhost:8000/api/v1/post/publish/", {
+                method: "POST",
+                headers: {
+                    "Content-Type": "application/json",
+                    Authorization: API_KEY,
+                },
+                body: JSON.stringify({ media_post_id: link.id })
+            });
+
+            if (response.ok) {
+                alert("Post publicado com sucesso!");
+                await fetchPosts();
+            } else {
+                console.error("Failed to publish");
+                alert("Falha ao publicar post.");
+            }
+        } catch (error) {
+            console.error("Error publishing:", error);
+            alert("Erro ao conectar com servidor.");
+        }
+    };
+
     return (
         <DndProvider backend={HTML5Backend}>
             <PageMeta title="Conteúdos | Miggo" description="Kanban de conteúdos" />
@@ -846,6 +880,7 @@ export default function ContentKanban() {
                             onMovePost={movePost}
                             onEdit={openEditPost}
                             onDelete={openDeletePost}
+                            onPublish={handlePublishPost}
                         />
                     ))}
                 </div>
@@ -880,6 +915,7 @@ export default function ContentKanban() {
                 currentPostId={currentPost?.id}
                 onDeleteMediaLink={handleDeleteMediaLink}
                 onStatusAction={handleStatusAction}
+                onPublish={() => currentPost && handlePublishPost(currentPost)}
                 userRole={user?.role}
             />
 

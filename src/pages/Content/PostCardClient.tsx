@@ -1,6 +1,6 @@
 import { useRef, useState } from "react";
 import { useDrag } from "react-dnd";
-import { MoreDotIcon, PencilIcon, TrashBinIcon } from "../../icons";
+import { MoreDotIcon, PencilIcon, TrashBinIcon, PaperPlaneIcon } from "../../icons";
 import { Dropdown } from "../../components/ui/dropdown/Dropdown";
 import { DropdownItem } from "../../components/ui/dropdown/DropdownItem";
 import { Client, Format, Media, Post, PostMediaLink } from "./ContentKanban";
@@ -14,9 +14,10 @@ interface PostCardProps {
     movePost?: (id: number, date: string) => void;
     onEdit: (post: Post) => void;
     onDelete: (post: Post) => void;
+    onPublish?: (post: Post) => void;
 }
 
-export default function PostCard({ post, formats, clients, medias, postMedias, onEdit, onDelete }: PostCardProps) {
+export default function PostCard({ post, formats, clients, medias, postMedias, onEdit, onDelete, onPublish }: PostCardProps) {
     const ref = useRef<HTMLDivElement>(null);
     const [isDropdownOpen, setIsDropdownOpen] = useState(false);
 
@@ -153,6 +154,15 @@ export default function PostCard({ post, formats, clients, medias, postMedias, o
                     onClose={() => setIsDropdownOpen(false)}
                     className="w-40 right-0 top-full"
                 >
+                    {onPublish && post.status !== 10 && (
+                        <DropdownItem
+                            className="flex items-center gap-2 px-4 py-2 text-sm text-brand-600 hover:bg-brand-50 dark:text-brand-400 dark:hover:bg-white/5 cursor-pointer"
+                            onClick={() => { setIsDropdownOpen(false); onPublish(post); }}
+                        >
+                            <PaperPlaneIcon className="w-4 h-4" />
+                            Publicar
+                        </DropdownItem>
+                    )}
                     <DropdownItem
                         className="flex items-center gap-2 px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 dark:text-gray-300 dark:hover:bg-white/5 cursor-pointer"
                         onClick={() => { setIsDropdownOpen(false); onEdit(post); }}

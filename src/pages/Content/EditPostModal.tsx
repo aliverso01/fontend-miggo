@@ -31,6 +31,7 @@ interface EditPostModalProps {
     onDeleteMediaLink: (linkId: number) => void;
     onUploadMedia: (e: React.ChangeEvent<HTMLInputElement>) => void;
     onStatusAction: (status: number) => void;
+    onPublish?: () => void;
     userRole?: string;
 }
 
@@ -48,6 +49,7 @@ export default function EditPostModal({
     onDeleteMediaLink,
     onUploadMedia,
     onStatusAction,
+    onPublish,
     userRole
 }: EditPostModalProps) {
     const [selectedImage, setSelectedImage] = useState<string | null>(null);
@@ -385,7 +387,7 @@ export default function EditPostModal({
                                     <Button
                                         className="w-full bg-[#7ACAC9] hover:bg-[#68b0af] text-white justify-start"
                                         startIcon={<PaperPlaneIcon className="w-5 h-5" />}
-                                        onClick={() => onStatusAction(10)} // Publicado
+                                        onClick={() => { if (onPublish) onPublish(); else onStatusAction(10); }} // Use onPublish if available
                                         disabled={loading}
                                     >
                                         Publicar no Instagram
