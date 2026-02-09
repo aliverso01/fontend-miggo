@@ -704,7 +704,123 @@ export default function ContentKanban() {
         await performUpdatePost(data);
     };
 
+    const performPublishRequest = async (post: Post, action: "publish" | "schedule" | "cancel") => {
+        // Find PostMediaLink ID
+        const link = postMedias.find(pm => pm.post === post.id);
+
+        if (!link) {
+            const actionPt = action === 'publish' ? 'publicar' : action === 'schedule' ? 'agendar' : 'cancelar';
+            alert(`Não é possível ${actionPt} post sem mídia vinculada.`);
+            return;
+        }
+
+        const actionPtMap = {
+            publish: "publicar",
+            schedule: "agendar",
+            cancel: "cancelar"
+        };
+        const actionPt = actionPtMap[action];
+
+        const confirmMessage = `Confirmar ${actionPt} este post?`;
+
+        if (!confirm(confirmMessage)) return;
+
+        try {
+            const response = await fetch("/api/v1/post/publish/", {
+                method: "POST",
+                headers: {
+                    "Content-Type": "application/json",
+                    Authorization: API_KEY,
+                },
+                body: JSON.stringify({
+                    publish: action,
+                    media_post_id: link.id
+                })
+            });
+
+            if (response.ok) {
+                alert(`Post ${action === 'cancel' ? 'cancelado' : action === 'publish' ? 'publicado' : 'agendado'} com sucesso!`);
+                await fetchPosts();
+                closeEditModal();
+            } else {
+                const errorText = await response.text();
+                let errorMessage = `Falha ao ${actionPt} post.`;
+                try {
+                    const errorJson = JSON.parse(errorText);
+                    // Check for "error" field specifically as requested
+                    if (errorJson.error) {
+                        errorMessage = typeof errorJson.error === 'string' ? errorJson.error : JSON.stringify(errorJson.error);
+                    } else if (errorJson.detail) {
+                        errorMessage = errorJson.detail;
+                    } else {
+                        // Fallback to dumping the whole json if no specific known field
+                        errorMessage = JSON.stringify(errorJson);
+                    }
+                } catch (e) {
+                    console.error("Error parsing error response:", e);
+                    // If parsing fails, maybe it's just text
+                    if (errorText.length < 200) errorMessage = errorText;
+                }
+                console.error(`Failed to ${action}`, errorText);
+                alert(errorMessage);
+            }
+        } catch (error) {
+            console.error(`Error ${action}ing:`, error);
+            alert("Erro ao conectar com servidor.");
+        }
+    };
+
+    const handlePublishPost = async (post: Post) => {
+        await performPublishRequest(post, "publish");
+    };
+
+    // Helper to get CSRF token
+    const getCookie = (name: string) => {
+        if (!document.cookie) return null;
+        const value = `; ${document.cookie}`;
+        const parts = value.split(`; ${name}=`);
+        if (parts.length === 2) return parts.pop()?.split(';').shift();
+        return null;
+    };
+
     const handleStatusAction = async (status: number) => {
+        // Intercept Schedule (3) action to use the publish endpoint
+        if (status === 3 && currentPost) {
+            await performPublishRequest(currentPost, "schedule");
+            return;
+        }
+
+        // Intercept Cancel (11) action to use the publish endpoint
+        if (status === 11 && currentPost) {
+            await performPublishRequest(currentPost, "cancel");
+            return;
+        }
+
+        if (status === 5 && currentPost) {
+            try {
+                const response = await fetch("/api/v1/post/send-post-whatsapp/", {
+                    method: "POST",
+                    credentials: "include", // Required for session/csrf
+                    headers: {
+                        "Content-Type": "application/json",
+                        "Authorization": API_KEY,
+                        "X-CSRFToken": getCookie("csrftoken") || "", // Add CSRF Token
+                    },
+                    body: JSON.stringify({
+                        post_id: currentPost.id
+                    })
+                });
+
+                if (response.ok) {
+                    alert("Enviado para revisão com sucesso!");
+                } else {
+                    console.warn("WhatsApp review notification failed", response.status);
+                }
+            } catch (e) {
+                console.error("Error triggering review notification", e);
+            }
+        }
+
         const newData = { ...editFormData, status };
         setEditFormData(newData);
         await performUpdatePost(newData);
@@ -741,42 +857,6 @@ export default function ContentKanban() {
         } catch (error) {
             console.error(error);
             alert("Erro ao remover mídia");
-        }
-    };
-
-
-
-    const handlePublishPost = async (post: Post) => {
-        // Find PostMediaLink ID
-        const link = postMedias.find(pm => pm.post === post.id);
-
-        if (!link) {
-            alert("Não é possível publicar: Post sem mídia vinculada.");
-            return;
-        }
-
-        if (!confirm("Confirmar a publicação deste post?")) return;
-
-        try {
-            const response = await fetch("http://localhost:8000/api/v1/post/publish/", {
-                method: "POST",
-                headers: {
-                    "Content-Type": "application/json",
-                    Authorization: API_KEY,
-                },
-                body: JSON.stringify({ media_post_id: link.id })
-            });
-
-            if (response.ok) {
-                alert("Post publicado com sucesso!");
-                await fetchPosts();
-            } else {
-                console.error("Failed to publish");
-                alert("Falha ao publicar post.");
-            }
-        } catch (error) {
-            console.error("Error publishing:", error);
-            alert("Erro ao conectar com servidor.");
         }
     };
 

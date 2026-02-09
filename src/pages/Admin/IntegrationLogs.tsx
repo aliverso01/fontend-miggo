@@ -5,6 +5,8 @@ import Select from "../../components/form/Select";
 import Label from "../../components/form/Label";
 import Input from "../../components/form/input/InputField";
 import Button from "../../components/ui/button/Button";
+import { Modal } from "../../components/ui/modal";
+import { CloseIcon } from "../../icons";
 
 interface LogEntry {
     id: number;
@@ -12,6 +14,7 @@ interface LogEntry {
     service: string;
     path: string;
     method: string;
+    payload: any;
     response: any;
     status_code: number;
     created_at: string;
@@ -31,6 +34,10 @@ export default function IntegrationLogs() {
     const [selectedClient, setSelectedClient] = useState<string>("");
     const [serviceFilter, setServiceFilter] = useState<string>("");
     const [loading, setLoading] = useState(false);
+
+    // Detail Modal State
+    const [selectedLog, setSelectedLog] = useState<LogEntry | null>(null);
+    const [isDetailOpen, setIsDetailOpen] = useState(false);
 
     const API_KEY = "Api-Key vxQRQtgZ.M9ppHygHa4hS32hnkTshmm1kxTD3qCSS";
 
@@ -103,6 +110,16 @@ export default function IntegrationLogs() {
         fetchLogs();
     }, [selectedClient, serviceFilter]);
 
+    const openLogDetails = (log: LogEntry) => {
+        setSelectedLog(log);
+        setIsDetailOpen(true);
+    };
+
+    const closeLogDetails = () => {
+        setIsDetailOpen(false);
+        setTimeout(() => setSelectedLog(null), 200); // Clear after animation roughly
+    };
+
     if (user?.role !== 'admin') {
         return <div className="p-6">Acesso negado.</div>;
     }
@@ -152,7 +169,11 @@ export default function IntegrationLogs() {
                         <tbody className="divide-y divide-gray-200 dark:divide-gray-800">
                             {logs.length > 0 ? (
                                 logs.map((log) => (
-                                    <tr key={log.id} className="hover:bg-gray-50 dark:hover:bg-gray-800/50">
+                                    <tr
+                                        key={log.id}
+                                        className="hover:bg-gray-50 dark:hover:bg-gray-800/50 cursor-pointer transition-colors"
+                                        onClick={() => openLogDetails(log)}
+                                    >
                                         <td className="px-6 py-4 text-sm text-gray-500 whitespace-nowrap dark:text-gray-400">
                                             {new Date(log.created_at).toLocaleString()}
                                         </td>
@@ -191,6 +212,70 @@ export default function IntegrationLogs() {
                     </table>
                 </div>
             </div>
+
+            {/* Details Modal */}
+            <Modal isOpen={isDetailOpen} onClose={closeLogDetails} className="max-w-4xl m-4">
+                <div className="w-full bg-white rounded-2xl p-6 dark:bg-gray-900 flex flex-col max-h-[90vh]">
+                    <div className="flex justify-between items-center mb-6">
+                        <h3 className="text-xl font-semibold text-gray-800 dark:text-white">Detalhes do Log #{selectedLog?.id}</h3>
+                        <Button variant="outline" onClick={closeLogDetails} className="p-2 min-w-0 rounded-full border-none hover:bg-gray-100 dark:hover:bg-gray-800">
+                            <CloseIcon className="w-5 h-5 text-gray-500" />
+                        </Button>
+                    </div>
+
+                    {selectedLog && (
+                        <div className="flex-1 overflow-y-auto pr-2 space-y-6">
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                <div>
+                                    <Label>Serviço</Label>
+                                    <div className="p-3 bg-gray-50 dark:bg-gray-800 rounded-lg text-sm text-gray-700 dark:text-gray-300">
+                                        {selectedLog.service}
+                                    </div>
+                                </div>
+                                <div>
+                                    <Label>Método / Path</Label>
+                                    <div className="p-3 bg-gray-50 dark:bg-gray-800 rounded-lg text-sm text-gray-700 dark:text-gray-300 break-all">
+                                        <span className="font-bold">{selectedLog.method}</span> {selectedLog.path}
+                                    </div>
+                                </div>
+                                <div>
+                                    <Label>Data</Label>
+                                    <div className="p-3 bg-gray-50 dark:bg-gray-800 rounded-lg text-sm text-gray-700 dark:text-gray-300">
+                                        {new Date(selectedLog.created_at).toLocaleString()}
+                                    </div>
+                                </div>
+                                <div>
+                                    <Label>Status Code</Label>
+                                    <div className={`p-3 rounded-lg text-sm font-bold ${selectedLog.status_code >= 200 && selectedLog.status_code < 300
+                                            ? 'bg-green-100 text-green-800'
+                                            : 'bg-red-100 text-red-800'
+                                        }`}>
+                                        {selectedLog.status_code}
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div>
+                                <Label>Payload (Request)</Label>
+                                <div className="mt-1 p-4 bg-gray-900 text-gray-100 text-xs font-mono rounded-lg overflow-x-auto">
+                                    <pre>{JSON.stringify(selectedLog.payload, null, 2)}</pre>
+                                </div>
+                            </div>
+
+                            <div>
+                                <Label>Response</Label>
+                                <div className="mt-1 p-4 bg-gray-900 text-gray-100 text-xs font-mono rounded-lg overflow-x-auto">
+                                    <pre>{JSON.stringify(selectedLog.response, null, 2)}</pre>
+                                </div>
+                            </div>
+                        </div>
+                    )}
+
+                    <div className="mt-6 flex justify-end">
+                        <Button onClick={closeLogDetails}>Fechar</Button>
+                    </div>
+                </div>
+            </Modal>
         </div>
     );
 }

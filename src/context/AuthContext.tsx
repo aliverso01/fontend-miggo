@@ -24,6 +24,7 @@ interface AuthContextType {
     login: (credentials: { email: string; password?: string }) => Promise<void>;
     logout: () => Promise<void>;
     updateProfile: (data: Partial<User>) => Promise<void>;
+    register: (data: { name: string; email: string; password?: string }) => Promise<void>;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -143,8 +144,49 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
         }
     };
 
+    const register = async (data: { name: string; email: string; password?: string }) => {
+        setLoading(true);
+        setError(null);
+        try {
+            const response = await fetch(
+                "/api/v1/account/register/",
+                {
+                    method: "POST",
+                    headers: {
+                        "Content-Type": "application/json",
+                        Authorization: "Api-Key vxQRQtgZ.M9ppHygHa4hS32hnkTshmm1kxTD3qCSS",
+                    },
+                    body: JSON.stringify(data),
+                }
+            );
+
+            if (!response.ok) {
+                const errorData = await response.json().catch(() => ({}));
+                const msg = errorData.detail || (errorData.error ? String(errorData.error) : "Registration failed");
+                throw new Error(msg);
+            }
+
+            const responseData = await response.json();
+            // Assuming registration returns token or user similar to login, or just success
+            // If it logs in automatically:
+            if (responseData.user) {
+                setUser(responseData.user);
+                localStorage.setItem("user", JSON.stringify(responseData.user));
+            }
+            return responseData;
+
+        } catch (err: any) {
+            const msg = err.message || "An error occurred during registration";
+            setError(msg);
+            console.error("Registration error:", err);
+            throw err;
+        } finally {
+            setLoading(false);
+        }
+    };
+
     return (
-        <AuthContext.Provider value={{ user, loading, error, login, logout, updateProfile }}>
+        <AuthContext.Provider value={{ user, loading, error, login, logout, updateProfile, register }}>
             {children}
         </AuthContext.Provider>
     );

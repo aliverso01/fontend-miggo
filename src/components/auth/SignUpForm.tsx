@@ -4,10 +4,42 @@ import { ChevronLeftIcon, EyeCloseIcon, EyeIcon } from "../../icons";
 import Label from "../form/Label";
 import Input from "../form/input/InputField";
 import Checkbox from "../form/input/Checkbox";
+import { useAuth } from "../../hooks/authHook";
 
 export default function SignUpForm() {
   const [showPassword, setShowPassword] = useState(false);
   const [isChecked, setIsChecked] = useState(false);
+  const { register, loading } = useAuth();
+
+  const [formData, setFormData] = useState({
+    fname: "",
+    lname: "",
+    email: "",
+    password: ""
+  });
+
+  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    setFormData({ ...formData, [e.target.name]: e.target.value });
+  };
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!isChecked) {
+      alert("Você deve aceitar os termos e condições.");
+      return;
+    }
+    const name = `${formData.fname} ${formData.lname}`.trim();
+    if (!name || !formData.email || !formData.password) {
+      alert("Preencha todos os campos obrigatórios.");
+      return;
+    }
+    await register({
+      name,
+      email: formData.email,
+      password: formData.password
+    });
+  };
+
   return (
     <div className="flex flex-col flex-1 w-full overflow-y-auto lg:w-1/2 no-scrollbar">
       <div className="w-full max-w-md mx-auto mb-5 sm:pt-10">
@@ -30,7 +62,7 @@ export default function SignUpForm() {
             </p>
           </div>
           <div>
-            <form>
+            <form onSubmit={handleSubmit}>
               <div className="space-y-5">
                 <div className="grid grid-cols-1 gap-5 sm:grid-cols-2">
                   {/* <!-- First Name --> */}
@@ -43,6 +75,8 @@ export default function SignUpForm() {
                       id="fname"
                       name="fname"
                       placeholder="Digite seu nome"
+                      value={formData.fname}
+                      onChange={handleInputChange}
                     />
                   </div>
                   {/* <!-- Last Name --> */}
@@ -55,6 +89,8 @@ export default function SignUpForm() {
                       id="lname"
                       name="lname"
                       placeholder="Digite seu sobrenome"
+                      value={formData.lname}
+                      onChange={handleInputChange}
                     />
                   </div>
                 </div>
@@ -68,6 +104,8 @@ export default function SignUpForm() {
                     id="email"
                     name="email"
                     placeholder="Digite seu e-mail"
+                    value={formData.email}
+                    onChange={handleInputChange}
                   />
                 </div>
                 {/* <!-- Password --> */}
@@ -79,6 +117,9 @@ export default function SignUpForm() {
                     <Input
                       placeholder="Digite sua senha"
                       type={showPassword ? "text" : "password"}
+                      name="password"
+                      value={formData.password}
+                      onChange={handleInputChange}
                     />
                     <span
                       onClick={() => setShowPassword(!showPassword)}
@@ -112,8 +153,12 @@ export default function SignUpForm() {
                 </div>
                 {/* <!-- Button --> */}
                 <div>
-                  <button className="flex items-center justify-center w-full px-4 py-3 text-sm font-medium text-white transition rounded-lg bg-brand-500 shadow-theme-xs hover:bg-brand-600" type="submit">
-                    Cadastrar
+                  <button
+                    className="flex items-center justify-center w-full px-4 py-3 text-sm font-medium text-white transition rounded-lg bg-brand-500 shadow-theme-xs hover:bg-brand-600 disabled:opacity-50 disabled:cursor-not-allowed"
+                    type="submit"
+                    disabled={loading}
+                  >
+                    {loading ? "Cadastrando..." : "Cadastrar"}
                   </button>
                 </div>
               </div>

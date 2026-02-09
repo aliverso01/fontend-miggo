@@ -1,5 +1,6 @@
 import { useState, useEffect } from "react";
 import { useSearchParams } from "react-router";
+import { TrashBinIcon } from "../../icons";
 import PageMeta from "../../components/common/PageMeta";
 import PageBreadcrumb from "../../components/common/PageBreadCrumb";
 import Select from "../../components/form/Select";
@@ -115,6 +116,33 @@ export default function MediaLibrary() {
         fetchMedia();
     }, [selectedClientUserId]);
 
+    const handleDelete = async (id: number) => {
+        if (!window.confirm("Tem certeza que deseja apagar esta mídia?")) return;
+
+        try {
+            const response = await fetch(`/api/v1/media/${id}/`, {
+                method: "DELETE",
+                headers: {
+                    Authorization: API_KEY,
+                    "Content-Type": "application/json",
+                },
+            });
+
+            if (response.ok) {
+                setMediaList((prev) => prev.filter((m) => m.id !== id));
+                if (selectedMedia?.id === id) {
+                    setSelectedMedia(null);
+                }
+            } else {
+                console.error("Failed to delete media");
+                alert("Erro ao apagar mídia.");
+            }
+        } catch (e) {
+            console.error("Error deleting media:", e);
+            alert("Erro ao apagar mídia.");
+        }
+    };
+
     // Map clients to options for the Select component
     // Value is the USER ID, Label is the Name
     const clientOptions = clients.map(c => ({ value: String(c.user), label: c.name }));
@@ -170,7 +198,19 @@ export default function MediaLibrary() {
                                         className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-110"
                                         loading="lazy"
                                     />
-                                    <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity p-3 flex flex-col justify-end text-white">
+                                    <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity p-3 flex flex-col justify-between text-white">
+                                        <div className="flex justify-end">
+                                            <button
+                                                onClick={(e) => {
+                                                    e.stopPropagation();
+                                                    handleDelete(item.id);
+                                                }}
+                                                className="p-1.5 bg-red-500/80 hover:bg-red-600 text-white rounded-full transition-colors"
+                                                title="Apagar mídia"
+                                            >
+                                                <TrashBinIcon className="w-4 h-4" />
+                                            </button>
+                                        </div>
                                         <p className="text-xs font-medium truncate">
                                             {new Date(item.created_at).toLocaleDateString()}
                                         </p>
@@ -203,6 +243,15 @@ export default function MediaLibrary() {
                             <line x1="6" y1="6" x2="18" y2="18"></line>
                         </svg>
                     </button>
+                    {selectedMedia && (
+                        <button
+                            onClick={() => handleDelete(selectedMedia.id)}
+                            className="absolute left-4 top-4 z-50 p-2 bg-red-500/80 hover:bg-red-600 rounded-full text-white transition-colors"
+                            title="Apagar mídia"
+                        >
+                            <TrashBinIcon className="w-6 h-6" />
+                        </button>
+                    )}
                     {selectedMedia && (
                         <img
                             src={selectedMedia.media}

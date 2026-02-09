@@ -15,6 +15,7 @@ export default function InstagramSuccess() {
     if (!connected) {
         if (location.pathname.includes("/linkedin/")) connected = "linkedin";
         else if (location.pathname.includes("/instagram/")) connected = "instagram";
+        else if (location.pathname.includes("/whatsapp/")) connected = "whatsapp";
     }
 
     const profileId = searchParams.get("profileId");
@@ -23,7 +24,8 @@ export default function InstagramSuccess() {
     // Map platform slugs to IDs
     const PLATFORM_MAP: Record<string, number> = {
         'instagram': 1,
-        'linkedin': 2
+        'linkedin': 2,
+        'whatsapp': 3
     };
 
     // Auto-activate integration logic would ideally happen here if we knew the ID

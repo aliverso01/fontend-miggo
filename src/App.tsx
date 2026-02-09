@@ -28,6 +28,9 @@ import HistoryList from "./pages/History/HistoryList";
 import IntegrationLogs from "./pages/Admin/IntegrationLogs";
 import MediaLibrary from "./pages/Media/MediaLibrary";
 import Plans from "./pages/Subscription/Plans";
+import Checkout from "./pages/Subscription/Checkout";
+import Success from "./pages/Subscription/Success";
+import Cancel from "./pages/Subscription/Cancel";
 
 export default function App() {
   return (
@@ -44,6 +47,9 @@ export default function App() {
               <Route path="/profile" element={<UserProfiles />} />
               <Route path="/clients" element={<ClientsList />} />
               <Route path="/plans" element={<Plans />} />
+              <Route path="/subscription/checkout" element={<Checkout />} />
+              <Route path="/subscription/success" element={<Success />} />
+              <Route path="/subscription/cancel" element={<Cancel />} />
               <Route path="/briefing" element={<Briefing />} />
               <Route path="/content" element={<ContentKanban />} />
               <Route path="/calendar" element={<Calendar />} />
@@ -53,6 +59,7 @@ export default function App() {
               <Route path="/blank" element={<Blank />} />
               <Route path="/instagram/success/:clientId/*" element={<InstagramSuccess />} />
               <Route path="/linkedin/success/:clientId/*" element={<InstagramSuccess />} />
+              <Route path="/whatsapp/success/:clientId/*" element={<InstagramSuccess />} />
 
               {/* Forms */}
               <Route path="/form-elements" element={<FormElements />} />

@@ -2,7 +2,7 @@ import { useNavigate } from "react-router";
 import { useAuthContext } from "../context/AuthContext";
 
 export const useAuth = () => {
-    const { login: contextLogin, logout, user, loading, error } = useAuthContext();
+    const { login: contextLogin, logout, user, loading, error, register: contextRegister } = useAuthContext();
     const navigate = useNavigate();
 
     const login = async (credentials: { email: string; password?: string }) => {
@@ -19,5 +19,14 @@ export const useAuth = () => {
         }
     };
 
-    return { login, logout, user, loading, error };
+    const register = async (data: { name: string; email: string; password?: string }) => {
+        try {
+            await contextRegister(data);
+            navigate("/");
+        } catch (err) {
+            console.error("Registration failed in hook:", err);
+        }
+    };
+
+    return { login, logout, user, loading, error, register };
 };
