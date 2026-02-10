@@ -19,6 +19,7 @@ type NavItem = {
   path?: string;
   subItems?: { name: string; path: string; pro?: boolean; new?: boolean }[];
   adminOnly?: boolean;
+  clientOnly?: boolean;
 };
 
 const AppSidebar: React.FC = () => {
@@ -66,6 +67,12 @@ const AppSidebar: React.FC = () => {
       path: "/plans",
     },
     {
+      icon: <DollarLineIcon />,
+      name: "Faturamento",
+      path: "/billing",
+      clientOnly: true,
+    },
+    {
       icon: <GridIcon />, // Reusing GridIcon or maybe another icon if available. I see GridIcon imported at top.
       name: "Biblioteca",
       path: "/media-library",
@@ -76,6 +83,12 @@ const AppSidebar: React.FC = () => {
       path: "/admin/logs",
       adminOnly: true,
     },
+    {
+      icon: <DollarLineIcon />,
+      name: "Faturamento",
+      path: "/admin/billing",
+      adminOnly: true,
+    },
   ];
 
   // Filter items based on user role
@@ -83,6 +96,7 @@ const AppSidebar: React.FC = () => {
 
   const navItems = allNavItems.filter(item => {
     if (item.adminOnly && !isAdmin) return false;
+    if (item.clientOnly && isAdmin) return false;
     return true;
   });
 

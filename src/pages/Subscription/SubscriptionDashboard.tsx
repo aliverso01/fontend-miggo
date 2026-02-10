@@ -2,6 +2,8 @@ import { useState } from 'react';
 import { useNavigate } from 'react-router';
 import { Plan } from './Plans';
 import Button from '../../components/ui/button/Button';
+import { useInvoices } from '../../hooks/useInvoices';
+import InvoiceList from '../../components/Subscription/InvoiceList';
 
 interface SubscriptionDashboardProps {
     subscription: any;
@@ -11,6 +13,7 @@ interface SubscriptionDashboardProps {
 export default function SubscriptionDashboard({ subscription, plans }: SubscriptionDashboardProps) {
     const navigate = useNavigate();
     const [canceling, setCanceling] = useState(false);
+    const { invoices, loading: loadingInvoices, error: errorInvoices } = useInvoices(subscription.client);
 
     // Identify current plan
     const priceId = (typeof subscription.plan_price === 'object' && subscription.plan_price !== null)
@@ -90,8 +93,8 @@ export default function SubscriptionDashboard({ subscription, plans }: Subscript
                         <p className="text-gray-500">Detalhes do seu plano atual e pagamentos.</p>
                     </div>
                     <span className={`mt-4 md:mt-0 px-4 py-1.5 rounded-full text-sm font-semibold tracking-wide ${subscription.status === 'active' ? 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400' :
-                            subscription.status === 'trial' ? 'bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400' :
-                                'bg-red-100 text-red-700'
+                        subscription.status === 'trial' ? 'bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400' :
+                            'bg-red-100 text-red-700'
                         }`}>
                         {subscription.trial ? 'Trial' : subscription.status.toUpperCase()}
                     </span>
@@ -154,12 +157,10 @@ export default function SubscriptionDashboard({ subscription, plans }: Subscript
                 </div>
             </div>
 
-            {/* History Section Placeholder */}
-            <div className="bg-white dark:bg-gray-900 rounded-2xl p-8 border border-gray-200 dark:border-gray-800 shadow-sm opacity-60">
+            {/* History Section */}
+            <div className="bg-white dark:bg-gray-900 rounded-2xl p-8 border border-gray-200 dark:border-gray-800 shadow-sm">
                 <h3 className="text-lg font-bold text-gray-900 dark:text-white mb-4">Histórico de Faturas</h3>
-                <div className="text-center py-8 text-gray-400">
-                    <p>Nenhuma fatura anterior encontrada.</p>
-                </div>
+                <InvoiceList invoices={invoices} loading={loadingInvoices} error={errorInvoices} />
             </div>
         </div>
     );

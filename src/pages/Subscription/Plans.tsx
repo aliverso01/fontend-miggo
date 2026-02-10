@@ -1,11 +1,11 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router';
 import { useAuthContext } from '../../context/AuthContext';
-import { useSubscription } from '../../hooks/useSubscription';
+
 import PageMeta from '../../components/common/PageMeta';
 import PageBreadcrumb from '../../components/common/PageBreadCrumb';
 import Button from '../../components/ui/button/Button';
-import SubscriptionDashboard from './SubscriptionDashboard';
+
 
 export interface Feature {
     id: number;
@@ -48,7 +48,8 @@ export interface SubscriptionPayload {
 export default function Plans() {
     const { user } = useAuthContext();
     const [clientId, setClientId] = useState<number | null>(null);
-    const { subscription, hasActiveSubscription } = useSubscription(clientId);
+
+    // const { subscription, hasActiveSubscription } = useSubscription(clientId); // Not needed anymore
 
     // Fetch Client ID for the current user
     useEffect(() => {
@@ -188,94 +189,93 @@ export default function Plans() {
 
                 <div className="flex flex-col items-center justify-center space-y-8 p-4">
 
-                    {hasActiveSubscription && subscription ? (
-                        <SubscriptionDashboard subscription={subscription} plans={plans} />
-                    ) : (
-                        <>
-                            <div className="flex bg-gray-100 p-1 rounded-full dark:bg-white/[0.03] border border-gray-200 dark:border-white/[0.05]">
-                                <button
-                                    onClick={() => setSelectedInterval('Semestral')}
-                                    className={`px-6 py-2 rounded-full text-sm font-medium transition-all duration-200 ${selectedInterval === 'Semestral'
-                                        ? 'bg-white shadow-sm text-brand-500 dark:bg-gray-800 dark:text-brand-400'
-                                        : 'text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200'
-                                        }`}
-                                >
-                                    Semestral
-                                </button>
-                                <button
-                                    onClick={() => setSelectedInterval('Trimestral')}
-                                    className={`px-6 py-2 rounded-full text-sm font-medium transition-all duration-200 ${selectedInterval === 'Trimestral'
-                                        ? 'bg-white shadow-sm text-brand-500 dark:bg-gray-800 dark:text-brand-400'
-                                        : 'text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200'
-                                        }`}
-                                >
-                                    Trimestral
-                                </button>
-                            </div>
+                    {/* Plans List */
+                        plans.length > 0 && (
+                            <>
+                                <div className="flex bg-gray-100 p-1 rounded-full dark:bg-white/[0.03] border border-gray-200 dark:border-white/[0.05]">
+                                    <button
+                                        onClick={() => setSelectedInterval('Semestral')}
+                                        className={`px-6 py-2 rounded-full text-sm font-medium transition-all duration-200 ${selectedInterval === 'Semestral'
+                                            ? 'bg-white shadow-sm text-brand-500 dark:bg-gray-800 dark:text-brand-400'
+                                            : 'text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200'
+                                            }`}
+                                    >
+                                        Semestral
+                                    </button>
+                                    <button
+                                        onClick={() => setSelectedInterval('Trimestral')}
+                                        className={`px-6 py-2 rounded-full text-sm font-medium transition-all duration-200 ${selectedInterval === 'Trimestral'
+                                            ? 'bg-white shadow-sm text-brand-500 dark:bg-gray-800 dark:text-brand-400'
+                                            : 'text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200'
+                                            }`}
+                                    >
+                                        Trimestral
+                                    </button>
+                                </div>
 
-                            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 w-full max-w-7xl">
-                                {plans.map((plan) => {
-                                    const priceObj = getPrice(plan);
+                                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 w-full max-w-7xl">
+                                    {plans.map((plan) => {
+                                        const priceObj = getPrice(plan);
 
-                                    return (
-                                        <div key={plan.id} className="relative flex flex-col p-6 bg-white dark:bg-gray-900 rounded-2xl border border-gray-200 dark:border-gray-800 shadow-sm hover:shadow-lg transition-shadow duration-300">
-                                            <div className="mb-4">
-                                                <h3 className="text-xl font-bold text-gray-900 dark:text-white">{plan.name}</h3>
-                                            </div>
-
-                                            <div className="mb-6">
-                                                <div className="flex items-baseline gap-1">
-                                                    <span className="text-4xl font-extrabold text-gray-900 dark:text-white">
-                                                        R$ {priceObj ? priceObj.price : '--'}
-                                                    </span>
-                                                    <span className="text-sm text-gray-500 dark:text-gray-400 uppercase font-medium tracking-wide">
-                                                        /mês
-                                                    </span>
+                                        return (
+                                            <div key={plan.id} className="relative flex flex-col p-6 bg-white dark:bg-gray-900 rounded-2xl border border-gray-200 dark:border-gray-800 shadow-sm hover:shadow-lg transition-shadow duration-300">
+                                                <div className="mb-4">
+                                                    <h3 className="text-xl font-bold text-gray-900 dark:text-white">{plan.name}</h3>
                                                 </div>
-                                            </div>
 
-                                            <div className="flex-grow space-y-4 mb-8">
-                                                {plan.features
-                                                    .sort((a, b) => a.order - b.order)
-                                                    .map((feature) => {
-                                                        const parts = feature.feature.split(':');
-                                                        const hasBullets = parts.length > 1 && parts[1].includes('.');
+                                                <div className="mb-6">
+                                                    <div className="flex items-baseline gap-1">
+                                                        <span className="text-4xl font-extrabold text-gray-900 dark:text-white">
+                                                            R$ {priceObj ? priceObj.price : '--'}
+                                                        </span>
+                                                        <span className="text-sm text-gray-500 dark:text-gray-400 uppercase font-medium tracking-wide">
+                                                            /mês
+                                                        </span>
+                                                    </div>
+                                                </div>
 
-                                                        return (
-                                                            <div key={feature.id} className="flex items-start gap-3">
-                                                                <div className="flex-shrink-0 w-5 h-5 rounded-full bg-brand-50 dark:bg-brand-500/10 flex items-center justify-center mt-0.5">
-                                                                    <svg className="w-3 h-3 text-brand-500 dark:text-brand-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" />
-                                                                    </svg>
+                                                <div className="flex-grow space-y-4 mb-8">
+                                                    {plan.features
+                                                        .sort((a, b) => a.order - b.order)
+                                                        .map((feature) => {
+                                                            const parts = feature.feature.split(':');
+                                                            const hasBullets = parts.length > 1 && parts[1].includes('.');
+
+                                                            return (
+                                                                <div key={feature.id} className="flex items-start gap-3">
+                                                                    <div className="flex-shrink-0 w-5 h-5 rounded-full bg-brand-50 dark:bg-brand-500/10 flex items-center justify-center mt-0.5">
+                                                                        <svg className="w-3 h-3 text-brand-500 dark:text-brand-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" />
+                                                                        </svg>
+                                                                    </div>
+                                                                    <div className="text-sm text-gray-600 dark:text-gray-300 leading-relaxed">
+                                                                        {hasBullets ? (
+                                                                            <>
+                                                                                <span className="font-semibold block mb-1">{parts[0]}:</span>
+                                                                                <ul className="list-disc pl-4 space-y-1">
+                                                                                    {parts[1].split('.').filter(item => item.trim().length > 0).map((item, idx) => (
+                                                                                        <li key={idx} className="pl-1">{item.trim()}</li>
+                                                                                    ))}
+                                                                                </ul>
+                                                                            </>
+                                                                        ) : (
+                                                                            feature.feature
+                                                                        )}
+                                                                    </div>
                                                                 </div>
-                                                                <div className="text-sm text-gray-600 dark:text-gray-300 leading-relaxed">
-                                                                    {hasBullets ? (
-                                                                        <>
-                                                                            <span className="font-semibold block mb-1">{parts[0]}:</span>
-                                                                            <ul className="list-disc pl-4 space-y-1">
-                                                                                {parts[1].split('.').filter(item => item.trim().length > 0).map((item, idx) => (
-                                                                                    <li key={idx} className="pl-1">{item.trim()}</li>
-                                                                                ))}
-                                                                            </ul>
-                                                                        </>
-                                                                    ) : (
-                                                                        feature.feature
-                                                                    )}
-                                                                </div>
-                                                            </div>
-                                                        );
-                                                    })}
-                                            </div>
+                                                            );
+                                                        })}
+                                                </div>
 
-                                            <Button className="w-full justify-center" onClick={() => handleSubscribe(plan)}>
-                                                Assinar Agora
-                                            </Button>
-                                        </div>
-                                    );
-                                })}
-                            </div>
-                        </>
-                    )}
+                                                <Button className="w-full justify-center" onClick={() => handleSubscribe(plan)}>
+                                                    Assinar Agora
+                                                </Button>
+                                            </div>
+                                        );
+                                    })}
+                                </div>
+                            </>
+                        )}
                 </div>
             </div>
         </>

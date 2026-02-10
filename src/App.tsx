@@ -26,8 +26,10 @@ import Home from "./pages/Dashboard/Home";
 import EditorialCalendar from "./pages/EditorialCalendar/EditorialCalendar";
 import HistoryList from "./pages/History/HistoryList";
 import IntegrationLogs from "./pages/Admin/IntegrationLogs";
+import BillingManagement from "./pages/Admin/BillingManagement";
 import MediaLibrary from "./pages/Media/MediaLibrary";
 import Plans from "./pages/Subscription/Plans";
+import ClientBilling from "./pages/Subscription/ClientBilling";
 import Checkout from "./pages/Subscription/Checkout";
 import Success from "./pages/Subscription/Success";
 import Cancel from "./pages/Subscription/Cancel";
@@ -47,6 +49,7 @@ export default function App() {
               <Route path="/profile" element={<UserProfiles />} />
               <Route path="/clients" element={<ClientsList />} />
               <Route path="/plans" element={<Plans />} />
+              <Route path="/billing" element={<ClientBilling />} />
               <Route path="/subscription/checkout" element={<Checkout />} />
               <Route path="/subscription/success" element={<Success />} />
               <Route path="/subscription/cancel" element={<Cancel />} />
@@ -81,6 +84,7 @@ export default function App() {
 
               {/* Admin */}
               <Route path="/admin/logs" element={<IntegrationLogs />} />
+              <Route path="/admin/billing" element={<BillingManagement />} />
             </Route>
           </Route>
 
