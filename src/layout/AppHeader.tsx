@@ -174,15 +174,29 @@ const AppHeader: React.FC = () => {
           </button>
 
           <Link to="/" className="lg:hidden">
+            {/* Modo claro: logo com texto turquesa */}
             <img
               className="dark:hidden"
-              src="./images/logo/logo.svg"
-              alt="Logo"
+              src="/images/logo/logo_dark_expanded.svg"
+              alt="Miggo"
+              width={300}
+              height={66}
+              style={{
+                marginTop: "-30px"
+              }}
             />
+            {/* Modo escuro: logo com texto branco */}
             <img
               className="hidden dark:block"
-              src="./images/logo/logo-dark.svg"
-              alt="Logo"
+              src="/images/logo/logo_light_expanded.svg"
+              alt="Miggo"
+              width={300}
+              height={66}
+              style={
+                {
+                  marginTop: "-30px"
+                }
+              }
             />
           </Link>
 

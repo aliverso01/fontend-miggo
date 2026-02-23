@@ -9,6 +9,7 @@ import {
   GroupIcon,
   ChevronDownIcon,
   DollarLineIcon,
+  BoxIcon,
 } from "../icons";
 import { useSidebar } from "../context/SidebarContext";
 import { useAuth } from "../hooks/authHook";
@@ -88,6 +89,11 @@ const AppSidebar: React.FC = () => {
       name: "Faturamento",
       path: "/admin/billing",
       adminOnly: true,
+    },
+    {
+      icon: <BoxIcon />,
+      name: "Brand Kit",
+      path: "/brandkit",
     },
   ];
 
@@ -272,27 +278,54 @@ const AppSidebar: React.FC = () => {
       onMouseEnter={() => !isExpanded && setIsHovered(true)}
       onMouseLeave={() => setIsHovered(false)}
     >
-      <div
-        className={`py-8 flex justify-center`}
-      >
+      <div className="py-6 flex justify-center">
         <Link to="/">
           {isExpanded || isHovered || isMobileOpen ? (
             <>
+              {/* Modo claro: logo expandida com texto turquesa */}
               <img
-                className=""
-                src="/images/logo/logo-brand.png"
-                alt="Logo"
-                width={150}
-                height={40}
+                className="dark:hidden"
+                src="/images/logo/logo_dark_expanded.svg"
+                alt="Miggo"
+                width={300}
+                height={66}
+                style={
+                  {
+                    marginTop: "-30px"
+                  }
+                }
+              />
+              {/* Modo escuro: logo expandida com texto branco */}
+              <img
+                className="hidden dark:block"
+                src="/images/logo/logo_light_expanded.svg"
+                alt="Miggo"
+                width={300}
+                height={66}
+                style={{
+                  marginTop: "-30px"
+                }}
               />
             </>
           ) : (
-            <img
-              src="/images/logo/logo-icon-brand.png"
-              alt="Logo"
-              width={32}
-              height={32}
-            />
+            <>
+              {/* Modo claro: ícone com símbolo turquesa */}
+              <img
+                className="dark:hidden"
+                src="/images/logo/logo_dark.svg"
+                alt="Miggo"
+                width={44}
+                height={44}
+              />
+              {/* Modo escuro: ícone com símbolo branco */}
+              <img
+                className="hidden dark:block"
+                src="/images/logo/logo_light.svg"
+                alt="Miggo"
+                width={44}
+                height={44}
+              />
+            </>
           )}
         </Link>
       </div>

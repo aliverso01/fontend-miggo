@@ -10,7 +10,7 @@ interface Client {
 }
 
 export default function BillingManagement() {
-    const { invoices, loading, error } = useInvoices(null);
+    const { invoices, loading, error, refetch } = useInvoices(null);
     const [clientsMap, setClientsMap] = useState<Record<number, string>>({});
     const API_KEY = "Api-Key vxQRQtgZ.M9ppHygHa4hS32hnkTshmm1kxTD3qCSS";
 
@@ -49,6 +49,8 @@ export default function BillingManagement() {
                         error={error}
                         showClient={true}
                         clientsMap={clientsMap}
+                        isAdmin={true}
+                        onStatusUpdated={refetch}
                     />
                 </div>
             </div>

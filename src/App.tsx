@@ -33,6 +33,7 @@ import ClientBilling from "./pages/Subscription/ClientBilling";
 import Checkout from "./pages/Subscription/Checkout";
 import Success from "./pages/Subscription/Success";
 import Cancel from "./pages/Subscription/Cancel";
+import BrandkitPage from "./pages/Brandkit/BrandkitPage";
 
 export default function App() {
   return (
@@ -81,6 +82,9 @@ export default function App() {
               {/* Charts */}
               <Route path="/line-chart" element={<LineChart />} />
               <Route path="/bar-chart" element={<BarChart />} />
+
+              {/* Brand Kit */}
+              <Route path="/brandkit" element={<BrandkitPage />} />
 
               {/* Admin */}
               <Route path="/admin/logs" element={<IntegrationLogs />} />
