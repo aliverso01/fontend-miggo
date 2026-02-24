@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, useMemo } from "react";
 import { useSearchParams } from "react-router-dom";
 import { DndProvider } from "react-dnd";
 import { HTML5Backend } from "react-dnd-html5-backend";
@@ -29,6 +29,8 @@ export interface Post {
     status?: number;
     calendar_id?: number | null;
     editorial_calendar?: number | null;
+    template_link?: string;
+    template_page?: number | null;
 }
 
 export interface Client {
@@ -86,6 +88,7 @@ export default function ContentKanban() {
     const [posts, setPosts] = useState<Post[]>([]);
     const [clients, setClients] = useState<Client[]>([]);
     const [formats, setFormats] = useState<Format[]>([]);
+    const [calendarRules, setCalendarRules] = useState<any[]>([]);
     const [loading, setLoading] = useState(false);
 
     const [searchParams, setSearchParams] = useSearchParams();
@@ -126,7 +129,7 @@ export default function ContentKanban() {
     const { isOpen: isDeleteOpen, openModal: openDeleteModal, closeModal: closeDeleteModal } = useModal();
     const [currentPost, setCurrentPost] = useState<Post | null>(null);
 
-    // Edit Form Data
+    // Edit Form Data (template_link is injected from calendar rule, not from the post)
     const [editFormData, setEditFormData] = useState({
         subject: "",
         content: "",
@@ -134,7 +137,22 @@ export default function ContentKanban() {
         post_time: "",
         status: 2,
         post_format: "" as number | "",
+        template_link: "",  // populated from calendarRules when opening a post from the calendar
+        template_page: "" as number | string,
     });
+
+    // Enrich posts with calendar rule data (Memoized for use in effects and render)
+    const enrichedPosts = useMemo(() => {
+        return posts.map(p => {
+            const ruleId = p.calendar_id || p.editorial_calendar;
+            const rule = calendarRules.find(r => Number(r.id) === Number(ruleId));
+            return {
+                ...p,
+                template_link: p.template_link || rule?.template_link,
+                template_page: p.template_page || rule?.template_page,
+            } as Post;
+        });
+    }, [posts, calendarRules]);
 
     const API_KEY = "Api-Key vxQRQtgZ.M9ppHygHa4hS32hnkTshmm1kxTD3qCSS";
 
@@ -240,8 +258,8 @@ export default function ContentKanban() {
     // URL Deep Linking for Edit Post
     useEffect(() => {
         const editPostId = searchParams.get('edit_post');
-        if (editPostId && posts.length > 0) {
-            const post = posts.find(p => p.id === Number(editPostId));
+        if (editPostId && enrichedPosts.length > 0) {
+            const post = enrichedPosts.find((p: Post) => p.id === Number(editPostId));
             if (post) {
                 // Add validation for status and format to avoid 0/null issues
                 if (post.status === undefined) post.status = 2; // Default to draft if missing
@@ -252,7 +270,7 @@ export default function ContentKanban() {
                 }, 100);
             }
         }
-    }, [posts, searchParams]);
+    }, [enrichedPosts, searchParams]);
 
     // Sync URL params to State (Handle external navigation updates)
     useEffect(() => {
@@ -344,9 +362,12 @@ export default function ContentKanban() {
             });
 
             if (!response.ok) return;
-            const calendarRules: any[] = await response.json();
+            const rules: any[] = await response.json();
 
-            if (calendarRules.length === 0) return;
+            // Save rules to state so the edit modal can look up template_link by calendar_id
+            setCalendarRules(rules);
+
+            if (rules.length === 0) return;
 
             const daysMap = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
             const postsToCreate: any[] = [];
@@ -358,7 +379,7 @@ export default function ContentKanban() {
                 const dayName = daysMap[dateObj.getDay()];
 
                 // Find rule for this day
-                const rule = calendarRules.find(r => r.week_day === dayName && r.active);
+                const rule = rules.find(r => r.week_day === dayName && r.active);
 
                 if (rule) {
                     // Iterate over formats in the rule
@@ -391,9 +412,10 @@ export default function ContentKanban() {
                                     content: "Conteúdo gerado via calendário",
                                     post_date: dateStr,
                                     post_time: rule.time,
-                                    status: 1, // Scheduled
+                                    status: 1,
                                     post_format: formatId,
-                                    calendar_id: rule.id
+                                    calendar_id: rule.id,
+                                    // NOTE: template_link is NOT a post field — kept out of payload
                                 });
                             }
                         }
@@ -412,6 +434,77 @@ export default function ContentKanban() {
                 });
 
                 if (createResponse.ok) {
+                    const createdPosts: Post[] = await createResponse.json();
+
+                    // For each created post that has a calendar_id with a template_link,
+                    // call the Make.com webhook to get the thumb, then upload as media
+                    const WEBHOOK_URL = "https://hook.us2.make.com/qehgm15rpvl4uhn2qu1b8xh6e41dejm1";
+
+                    for (const createdPost of createdPosts) {
+                        // Look up the calendar rule to get its template_link
+                        const rule = rules.find(r => r.id === createdPost.calendar_id);
+                        const templateLink = rule?.template_link;
+                        if (!templateLink) continue;
+
+                        try {
+                            // 1. Call webhook with the template link
+                            const webhookRes = await fetch(WEBHOOK_URL, {
+                                method: "POST",
+                                headers: { "Content-Type": "application/json" },
+                                body: JSON.stringify([{
+                                    calendar_template_link: templateLink,
+                                }]),
+                            });
+
+                            if (!webhookRes.ok) continue;
+
+                            // Make.com returns: [{ body: '{"calendar_template_thumb": "...", ...}', status: 200 }]
+                            const rawResponse: { body: string; status: number }[] = await webhookRes.json();
+                            if (!rawResponse || rawResponse.length === 0) continue;
+
+                            const parsed = JSON.parse(rawResponse[0].body);
+                            const thumbUrl: string = parsed.calendar_template_thumb;
+                            if (!thumbUrl) continue;
+
+                            // 2. Download the thumb image
+                            const imgRes = await fetch(thumbUrl);
+                            if (!imgRes.ok) continue;
+
+                            const blob = await imgRes.blob();
+                            const ext = blob.type.includes("png") ? "png" : "jpg";
+                            const file = new File([blob], `template_${createdPost.id}.${ext}`, { type: blob.type });
+
+                            // 3. Upload image as media
+                            const mediaForm = new FormData();
+                            mediaForm.append("client", String(createdPost.client));
+                            mediaForm.append("media", file);
+
+                            const mediaRes = await fetch("/api/v1/media/create/", {
+                                method: "POST",
+                                headers: { Authorization: API_KEY },
+                                body: mediaForm,
+                            });
+
+                            if (mediaRes.ok) {
+                                const mediaData = await mediaRes.json();
+                                // 4. Link media to the post
+                                await fetch("/api/v1/post/media-post/create/", {
+                                    method: "POST",
+                                    headers: {
+                                        "Content-Type": "application/json",
+                                        Authorization: API_KEY,
+                                    },
+                                    body: JSON.stringify({
+                                        post: createdPost.id,
+                                        media: mediaData.id,
+                                    }),
+                                });
+                            }
+                        } catch (err) {
+                            console.error(`Erro ao importar template para o post ${createdPost.id}:`, err);
+                        }
+                    }
+
                     await fetchPosts();
                 } else {
                     console.error("Failed to auto-create posts:", await createResponse.text());
@@ -645,7 +738,9 @@ export default function ContentKanban() {
             post_date: post.post_date,
             post_time: post.post_time,
             status: post.status || 2,
-            post_format: post.post_format || "" as any
+            post_format: post.post_format || "" as any,
+            template_link: post.template_link || "",
+            template_page: post.template_page || "",
         });
         openEditModal();
     };
@@ -933,14 +1028,13 @@ export default function ContentKanban() {
                     </Button>
                 </div>
 
-
                 <div className="flex flex-1 gap-6 overflow-x-auto pb-4">
                     {weekDates.map((date, index) => (
                         <KanbanColumn
                             key={date}
                             date={date}
                             dayName={dayNames[index]}
-                            posts={posts.filter(p => {
+                            posts={enrichedPosts.filter((p: Post) => {
                                 const matchDate = p.post_date === date;
                                 const matchClient = selectedClient ? p.client === selectedClient : true;
                                 const matchStatus = selectedStatus ? p.status === selectedStatus : true;
@@ -997,6 +1091,82 @@ export default function ContentKanban() {
                 onStatusAction={handleStatusAction}
                 onPublish={() => currentPost && handlePublishPost(currentPost)}
                 userRole={user?.role}
+                onImportTemplate={(async (page?: number) => {
+                    const post = currentPost;
+                    if (!post) return;
+
+                    const templateLink = (post as any).template_link;
+                    if (!templateLink) return;
+
+                    const postId = post.id;
+                    const clientId = post.client;
+
+                    const WEBHOOK_URL = "https://hook.us2.make.com/qehgm15rpvl4uhn2qu1b8xh6e41dejm1";
+                    try {
+                        const payload: any = {
+                            calendar_template_link: templateLink,
+                        };
+                        if (page) payload.calendar_template_page = page;
+
+                        const webhookRes = await fetch(WEBHOOK_URL, {
+                            method: "POST",
+                            headers: { "Content-Type": "application/json" },
+                            body: JSON.stringify([payload]),
+                        });
+                        if (!webhookRes.ok) throw new Error("Webhook falhou");
+
+                        const resData = await webhookRes.json();
+
+                        // Handle both direct object or wrapped in array (common in some webhook proxies)
+                        let parsedData = resData;
+                        if (Array.isArray(resData) && resData.length > 0) {
+                            parsedData = typeof resData[0].body === 'string' ? JSON.parse(resData[0].body) : resData[0];
+                        }
+
+                        const thumbUrl: string = parsedData?.calendar_template_thumb;
+                        if (!thumbUrl) {
+                            console.error("Dados recebidos:", resData);
+                            throw new Error("URL do thumb não encontrada na resposta");
+                        }
+                        const imgRes = await fetch(thumbUrl);
+                        if (!imgRes.ok) throw new Error("Falha ao baixar imagem");
+
+                        const blob = await imgRes.blob();
+                        const ext = blob.type.includes("png") ? "png" : "jpg";
+                        const file = new File([blob], `template_${postId}.${ext}`, { type: blob.type });
+
+                        const mediaForm = new FormData();
+                        mediaForm.append("client", String(clientId));
+                        mediaForm.append("media", file);
+
+                        const mediaRes = await fetch("/api/v1/media/create/", {
+                            method: "POST",
+                            headers: { Authorization: API_KEY },
+                            body: mediaForm,
+                        });
+                        if (!mediaRes.ok) throw new Error("Falha ao fazer upload da mídia");
+
+                        const mediaData = await mediaRes.json();
+
+                        await fetch("/api/v1/post/media-post/create/", {
+                            method: "POST",
+                            headers: {
+                                "Content-Type": "application/json",
+                                Authorization: API_KEY,
+                            },
+                            body: JSON.stringify({
+                                post: postId,
+                                media: mediaData.id,
+                            }),
+                        });
+
+                        await fetchMedias();
+                        await fetchPostMedias();
+                    } catch (err) {
+                        console.error("Erro ao importar template:", err);
+                        alert("Erro ao importar imagem do Canva. Tente novamente.");
+                    }
+                })}
             />
 
             {/* Delete Modal */}

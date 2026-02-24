@@ -206,6 +206,27 @@ export default function PostCard({ post, formats, clients, medias, postMedias, o
                 </span>
                 <span>{post.post_time.slice(0, 5)}</span>
             </div>
+
+            {/* Template Link — shown when post was created from editorial calendar */}
+            {post.template_link && (
+                <a
+                    href={post.template_link}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    onClick={(e) => e.stopPropagation()}
+                    className="mt-2 flex items-center gap-1.5 w-full justify-center py-1.5 px-3 rounded-lg bg-brand-50 dark:bg-brand-500/10 text-brand-600 dark:text-brand-400 text-[11px] font-semibold hover:bg-brand-100 dark:hover:bg-brand-500/20 transition-colors"
+                >
+                    <svg xmlns="http://www.w3.org/2000/svg" className="w-3 h-3 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
+                    </svg>
+                    Ver Template
+                    {post.template_page && (
+                        <span className="ml-1 bg-brand-500 text-white rounded-full px-1.5 py-0.5 text-[9px] font-bold leading-none">
+                            p.{post.template_page}
+                        </span>
+                    )}
+                </a>
+            )}
         </div>
     );
 }

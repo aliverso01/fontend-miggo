@@ -33,6 +33,7 @@ interface EditPostModalProps {
     onStatusAction: (status: number) => void;
     onPublish?: () => void;
     userRole?: string;
+    onImportTemplate?: (page?: number) => Promise<void>;
 }
 
 export default function EditPostModal({
@@ -50,10 +51,12 @@ export default function EditPostModal({
     onUploadMedia,
     onStatusAction,
     onPublish,
-    userRole
+    userRole,
+    onImportTemplate,
 }: EditPostModalProps) {
     const [selectedImage, setSelectedImage] = useState<string | null>(null);
     const [pdfBlobUrl, setPdfBlobUrl] = useState<string | null>(null);
+    const [importingTemplate, setImportingTemplate] = useState(false);
 
     const isClient = userRole === 'client';
 
@@ -235,6 +238,74 @@ export default function EditPostModal({
                                 </div>
                             )}
 
+                            {/* Canva Template Import */}
+                            {!isClient && formData.template_link && onImportTemplate && (
+                                <div className="rounded-xl border border-brand-200 dark:border-brand-500/30 bg-brand-50/50 dark:bg-brand-500/5 p-4">
+                                    <div className="flex items-start gap-3">
+                                        <div className="flex-shrink-0 w-8 h-8 rounded-lg bg-brand-100 dark:bg-brand-500/20 flex items-center justify-center">
+                                            <svg xmlns="http://www.w3.org/2000/svg" className="w-4 h-4 text-brand-600 dark:text-brand-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
+                                            </svg>
+                                        </div>
+                                        <div className="flex-1 min-w-0">
+                                            <p className="text-sm font-semibold text-gray-800 dark:text-white">Template Canva vinculado</p>
+                                            <a
+                                                href={formData.template_link}
+                                                target="_blank"
+                                                rel="noopener noreferrer"
+                                                className="text-xs text-brand-500 hover:underline truncate block max-w-full"
+                                            >
+                                                {formData.template_link}
+                                            </a>
+                                        </div>
+                                    </div>
+
+                                    <div className="mt-4 flex items-end gap-3">
+                                        <div className="flex-1">
+                                            <Label>Página do Template</Label>
+                                            <Input
+                                                type="number"
+                                                name="template_page"
+                                                placeholder="Página (ex: 1)"
+                                                value={formData.template_page}
+                                                onChange={handleInputChange}
+                                            />
+                                        </div>
+                                        <button
+                                            type="button"
+                                            disabled={importingTemplate || !formData.template_page || Number(formData.template_page) <= 0}
+                                            title={!formData.template_page ? "Informe o número da página para baixar" : ""}
+                                            onClick={async () => {
+                                                setImportingTemplate(true);
+                                                try {
+                                                    await onImportTemplate(Number(formData.template_page));
+                                                } finally {
+                                                    setImportingTemplate(false);
+                                                }
+                                            }}
+                                            className="h-11 px-4 rounded-lg bg-brand-600 hover:bg-brand-700 disabled:opacity-50 disabled:bg-gray-400 disabled:cursor-not-allowed text-white text-sm font-semibold transition-colors flex items-center gap-2"
+                                        >
+                                            {importingTemplate ? (
+                                                <>
+                                                    <svg className="animate-spin w-4 h-4" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                                                        <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                                                        <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8H4z" />
+                                                    </svg>
+                                                    Importando...
+                                                </>
+                                            ) : (
+                                                <>
+                                                    <svg xmlns="http://www.w3.org/2000/svg" className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
+                                                    </svg>
+                                                    Baixar Imagem
+                                                </>
+                                            )}
+                                        </button>
+                                    </div>
+                                </div>
+                            )}
+
                             <div>
                                 <Label>Conteúdo</Label>
                                 <textarea
@@ -323,6 +394,29 @@ export default function EditPostModal({
                                 {statusInfo.label}
                             </span>
                         </div>
+
+                        {/* Template Link Banner */}
+                        {formData.template_link && (
+                            <div className="rounded-xl border border-brand-200 bg-brand-50 dark:border-brand-500/30 dark:bg-brand-500/10 p-3 mb-1">
+                                <p className="text-xs font-semibold text-brand-700 dark:text-brand-300 mb-1.5">Template disponível</p>
+                                <a
+                                    href={formData.template_link}
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                    className="flex items-center gap-2 text-xs text-brand-600 dark:text-brand-400 hover:underline font-medium truncate"
+                                >
+                                    <svg xmlns="http://www.w3.org/2000/svg" className="w-4 h-4 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
+                                    </svg>
+                                    <span className="truncate">Abrir no Canva</span>
+                                </a>
+                                {formData.calendar_template_page && (
+                                    <p className="mt-1 text-[11px] text-brand-500 dark:text-brand-400">
+                                        Página: <span className="font-bold">{formData.calendar_template_page}</span>
+                                    </p>
+                                )}
+                            </div>
+                        )}
 
                         <div className="flex flex-col gap-3 w-full">
 
