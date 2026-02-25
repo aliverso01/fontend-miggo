@@ -1,5 +1,4 @@
 import { useState, useEffect, useCallback } from 'react';
-import { useAuthContext } from '../context/AuthContext';
 
 export interface Invoice {
     id: number;
@@ -36,7 +35,6 @@ export const useInvoices = (clientId: number | null | undefined) => {
     const [invoices, setInvoices] = useState<Invoice[]>([]);
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState<string | null>(null);
-    const { user } = useAuthContext();
 
     const API_KEY = import.meta.env.VITE_MIGGO_API_KEY;
 

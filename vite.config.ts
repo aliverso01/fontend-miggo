@@ -31,7 +31,7 @@ export default defineConfig(({ mode }) => {
               proxyReq.setHeader("Origin", target);
               proxyReq.setHeader("Referer", target);
             });
-            proxy.on("proxyRes", (proxyRes, _req, _res) => {
+            proxy.on("proxyRes", (_proxyRes, _req, _res) => {
               // Optionally log or modify response headers if needed
             });
           },
