@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useSearchParams } from "react-router";
 import { TrashBinIcon } from "../../icons";
 import PageMeta from "../../components/common/PageMeta";
@@ -18,10 +18,10 @@ interface Media {
 }
 
 interface Client {
-    id: number; // This is the Profile ID usually, but we need User ID for the filter
+    id: number;
     name: string;
     email: string;
-    user: number; // Linked User ID
+    user: number;
 }
 
 export default function MediaLibrary() {
@@ -31,9 +31,12 @@ export default function MediaLibrary() {
     const [selectedClientUserId, setSelectedClientUserId] = useState<string>("");
     const [selectedMedia, setSelectedMedia] = useState<Media | null>(null);
     const [loading, setLoading] = useState(false);
+    const [uploading, setUploading] = useState(false);
+    const [uploadError, setUploadError] = useState<string | null>(null);
+    const [uploadSuccess, setUploadSuccess] = useState<string | null>(null);
     const [searchParams] = useSearchParams();
+    const fileInputRef = useRef<HTMLInputElement>(null);
 
-    // Using the API Key found in other files
     const API_KEY = import.meta.env.VITE_MIGGO_API_KEY;
 
     const isAdmin = user?.role === 'admin' || user?.is_superuser || user?.is_staff;
@@ -50,22 +53,16 @@ export default function MediaLibrary() {
                         const data = await response.json();
                         setClients(data);
 
-                        // Check for client_id in URL
                         const clientIdParam = searchParams.get('client_id');
                         if (clientIdParam) {
                             const foundClient = data.find((c: Client) => c.id === Number(clientIdParam));
                             if (foundClient) {
                                 setSelectedClientUserId(String(foundClient.user));
-                                return; // Skip default selection
+                                return;
                             }
                         }
 
-                        // If there are clients, maybe select the first one by default?
-                        // Or leave it empty to force selection.
-                        // Let's leave it empty unless we want to autoshow something.
                         if (data.length > 0 && !selectedClientUserId) {
-                            // If no param and no existing selection, default to first?
-                            // Prompt didn't specify default behavior for admin, but previous code did this:
                             setSelectedClientUserId(String(data[0].user));
                         }
                     }
@@ -75,7 +72,6 @@ export default function MediaLibrary() {
             };
             fetchClients();
         } else {
-            // If not admin, the user acts as the client
             if (user) {
                 setSelectedClientUserId(String(user.id));
             }
@@ -84,9 +80,6 @@ export default function MediaLibrary() {
 
     // Fetch Media
     useEffect(() => {
-        // If no user selected (and is admin), don't fetch anything or allow "all"? 
-        // Prompt says: "Admin deve poder escolher de quem ele quer ver". 
-        // It implies viewing one user's media.
         if (!selectedClientUserId) {
             setMediaList([]);
             return;
@@ -102,7 +95,6 @@ export default function MediaLibrary() {
                     const data = await response.json();
                     setMediaList(data);
                 } else {
-                    console.error("Failed to fetch media");
                     setMediaList([]);
                 }
             } catch (e) {
@@ -117,7 +109,7 @@ export default function MediaLibrary() {
     }, [selectedClientUserId]);
 
     const handleDelete = async (id: number) => {
-        if (!window.confirm("Tem certeza que deseja apagar esta mídia?")) return;
+        if (!window.confirm("Tem certeza que deseja apagar esta imagem?")) return;
 
         try {
             const response = await fetch(`/api/v1/media/${id}/`, {
@@ -134,25 +126,75 @@ export default function MediaLibrary() {
                     setSelectedMedia(null);
                 }
             } else {
-                console.error("Failed to delete media");
-                alert("Erro ao apagar mídia.");
+                alert("Erro ao apagar imagem.");
             }
         } catch (e) {
-            console.error("Error deleting media:", e);
-            alert("Erro ao apagar mídia.");
+            alert("Erro ao apagar imagem.");
         }
     };
 
-    // Map clients to options for the Select component
-    // Value is the USER ID, Label is the Name
+    const handleUpload = async (files: FileList | null) => {
+        if (!files || files.length === 0) return;
+        setUploading(true);
+        setUploadError(null);
+        setUploadSuccess(null);
+
+        let successCount = 0;
+        let errorCount = 0;
+
+        for (const file of Array.from(files)) {
+            const formData = new FormData();
+            formData.append("media", file);
+
+            try {
+                const response = await fetch("/api/v1/media/create/", {
+                    method: "POST",
+                    headers: { Authorization: API_KEY },
+                    body: formData,
+                });
+
+                if (response.ok) {
+                    successCount++;
+                } else {
+                    errorCount++;
+                    console.error("Upload failed for", file.name);
+                }
+            } catch (e) {
+                errorCount++;
+                console.error("Upload error for", file.name, e);
+            }
+        }
+
+        setUploading(false);
+
+        if (successCount > 0) {
+            setUploadSuccess(`${successCount} imagem(ns) enviada(s) com sucesso!`);
+            // Refresh the media list
+            if (selectedClientUserId) {
+                const response = await fetch(`/api/v1/media/list/?user_id=${selectedClientUserId}`, {
+                    headers: { Authorization: API_KEY },
+                });
+                if (response.ok) setMediaList(await response.json());
+            }
+        }
+        if (errorCount > 0) {
+            setUploadError(`${errorCount} imagem(ns) com falha no envio.`);
+        }
+
+        // Reset input
+        if (fileInputRef.current) fileInputRef.current.value = "";
+    };
+
     const clientOptions = clients.map(c => ({ value: String(c.user), label: c.name }));
 
     return (
         <>
-            <PageMeta title="Biblioteca de Mídia | Miggo" description="Visualize a biblioteca de mídia" />
-            <PageBreadcrumb pageTitle="Biblioteca de Mídia" />
+            <PageMeta title="Minhas Imagens | Miggo" description="Faça upload e gerencie suas imagens" />
+            <PageBreadcrumb pageTitle="Minhas Imagens" />
 
             <div className="space-y-6">
+
+                {/* Filtro por cliente (Admin only) */}
                 {isAdmin && (
                     <div className="bg-white dark:bg-gray-900 p-6 rounded-2xl border border-gray-200 dark:border-gray-800 shadow-sm">
                         <div className="max-w-md">
@@ -169,8 +211,63 @@ export default function MediaLibrary() {
                     </div>
                 )}
 
+                {/* Upload Box */}
                 <div className="bg-white dark:bg-gray-900 p-6 rounded-2xl border border-gray-200 dark:border-gray-800 shadow-sm">
-                    <h3 className="text-lg font-semibold text-gray-800 dark:text-white mb-4">Arquivos</h3>
+                    <h3 className="text-lg font-semibold text-gray-800 dark:text-white mb-4">Enviar Imagens</h3>
+
+                    {/* Drag & Drop zone */}
+                    <div
+                        className="border-2 border-dashed border-gray-300 dark:border-gray-700 rounded-xl p-8 flex flex-col items-center justify-center text-center cursor-pointer hover:border-brand-400 hover:bg-brand-50/30 dark:hover:bg-brand-500/5 transition-colors"
+                        onClick={() => fileInputRef.current?.click()}
+                        onDragOver={(e) => e.preventDefault()}
+                        onDrop={(e) => {
+                            e.preventDefault();
+                            handleUpload(e.dataTransfer.files);
+                        }}
+                    >
+                        <svg className="w-12 h-12 text-gray-400 dark:text-gray-600 mb-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                        </svg>
+                        <p className="text-sm font-medium text-gray-700 dark:text-gray-300">
+                            Arraste e solte suas imagens aqui, ou{" "}
+                            <span className="text-brand-500 hover:text-brand-600 cursor-pointer">clique para selecionar</span>
+                        </p>
+                        <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">PNG, JPG, GIF, WEBP até qualquer tamanho</p>
+                        <input
+                            ref={fileInputRef}
+                            type="file"
+                            accept="image/*"
+                            multiple
+                            className="hidden"
+                            onChange={(e) => handleUpload(e.target.files)}
+                        />
+                    </div>
+
+                    {/* Upload status */}
+                    {uploading && (
+                        <div className="mt-3 flex items-center gap-2 text-brand-600 dark:text-brand-400 text-sm">
+                            <div className="border-gray-300 h-4 w-4 animate-spin rounded-full border-2 border-t-brand-500" />
+                            Enviando imagens...
+                        </div>
+                    )}
+                    {uploadSuccess && (
+                        <p className="mt-3 text-sm font-medium text-green-600 dark:text-green-400">{uploadSuccess}</p>
+                    )}
+                    {uploadError && (
+                        <p className="mt-3 text-sm font-medium text-red-600 dark:text-red-400">{uploadError}</p>
+                    )}
+                </div>
+
+                {/* Gallery */}
+                <div className="bg-white dark:bg-gray-900 p-6 rounded-2xl border border-gray-200 dark:border-gray-800 shadow-sm">
+                    <h3 className="text-lg font-semibold text-gray-800 dark:text-white mb-4">
+                        Galeria
+                        {mediaList.length > 0 && (
+                            <span className="ml-2 text-sm font-normal text-gray-500 dark:text-gray-400">
+                                ({mediaList.length} imagem{mediaList.length > 1 ? "ns" : ""})
+                            </span>
+                        )}
+                    </h3>
 
                     {loading && (
                         <div className="flex justify-center items-center py-12">
@@ -180,7 +277,10 @@ export default function MediaLibrary() {
 
                     {!loading && mediaList.length === 0 && (
                         <div className="text-center py-12 text-gray-500 dark:text-gray-400">
-                            Nenhuma mídia encontrada para este usuário.
+                            <svg className="w-16 h-16 mx-auto mb-3 text-gray-300 dark:text-gray-700" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                            </svg>
+                            Nenhuma imagem encontrada. Faça upload das suas imagens acima!
                         </div>
                     )}
 
@@ -194,7 +294,7 @@ export default function MediaLibrary() {
                                 >
                                     <img
                                         src={item.media}
-                                        alt={`Media ${item.id}`}
+                                        alt={`Imagem ${item.id}`}
                                         className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-110"
                                         loading="lazy"
                                     />
@@ -206,7 +306,7 @@ export default function MediaLibrary() {
                                                     handleDelete(item.id);
                                                 }}
                                                 className="p-1.5 bg-red-500/80 hover:bg-red-600 text-white rounded-full transition-colors"
-                                                title="Apagar mídia"
+                                                title="Apagar imagem"
                                             >
                                                 <TrashBinIcon className="w-4 h-4" />
                                             </button>
@@ -222,16 +322,12 @@ export default function MediaLibrary() {
                 </div>
             </div>
 
-            {/* Media Viewer Modal */}
+            {/* Image Viewer Modal */}
             <Modal
                 isOpen={!!selectedMedia}
                 onClose={() => setSelectedMedia(null)}
                 className="max-w-4xl w-full p-0 overflow-hidden bg-transparent shadow-none"
-                showCloseButton={false} // We can add our own or use the default. Default puts it in top right of 'content'. 
-            // But since we want image centric, maybe we want custom styling. 
-            // Let's rely on default close button but style the container to be transparent if possible?
-            // The Modal component forces white/bg-gray-900 on 'contentClasses' unless isFullscreen.
-            // Let's use standard modal style first, it's safer.
+                showCloseButton={false}
             >
                 <div className="relative flex justify-center items-center bg-black/90 p-4 rounded-xl">
                     <button
@@ -247,7 +343,7 @@ export default function MediaLibrary() {
                         <button
                             onClick={() => handleDelete(selectedMedia.id)}
                             className="absolute left-4 top-4 z-50 p-2 bg-red-500/80 hover:bg-red-600 rounded-full text-white transition-colors"
-                            title="Apagar mídia"
+                            title="Apagar imagem"
                         >
                             <TrashBinIcon className="w-6 h-6" />
                         </button>
@@ -255,7 +351,7 @@ export default function MediaLibrary() {
                     {selectedMedia && (
                         <img
                             src={selectedMedia.media}
-                            alt="Full view"
+                            alt="Visualização"
                             className="max-h-[85vh] max-w-full object-contain rounded-lg"
                         />
                     )}

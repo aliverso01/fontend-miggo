@@ -317,19 +317,19 @@ export default function Home() {
     }
   };
 
-  const handleResendCode = async () => {
+  const handleSendCode = async () => {
     if (!currentClientId) return;
     try {
       const response = await fetch(`/api/v1/client/generate-activation-code/${currentClientId}/`, {
         headers: { Authorization: API_KEY }
       });
       if (response.ok) {
-        alert("Código reenviado para o WhatsApp!");
+        alert("Código enviado para o seu e-mail!");
       } else {
-        alert("Erro ao reenviar código.");
+        alert("Erro ao enviar código.");
       }
     } catch (e) {
-      alert("Erro ao reenviar código.");
+      alert("Erro ao enviar código.");
     }
   };
 
@@ -360,7 +360,7 @@ export default function Home() {
           <h3 className="text-lg font-semibold text-red-800 dark:text-red-400 mb-2">Conta não ativada</h3>
           <p className="text-red-600 dark:text-red-300 mb-4">
             Sua conta precisa ser ativada para acessar todas as funcionalidades (como criar posts).
-            Por favor, insira o código de 6 dígitos enviado para o seu WhatsApp cadastrado.
+            Clique em <strong>"Enviar Código"</strong> para receber o código de ativação no seu e-mail cadastrado.
           </p>
 
           <div className="flex flex-col sm:flex-row gap-3 items-start sm:items-center">
@@ -378,10 +378,10 @@ export default function Home() {
               Ativar Conta
             </button>
             <button
-              onClick={handleResendCode}
+              onClick={handleSendCode}
               className="px-4 py-2 text-brand-600 hover:text-brand-700 dark:text-brand-400 font-medium underline text-sm"
             >
-              Reenviar Código via WhatsApp
+              Enviar Código por E-mail
             </button>
           </div>
 

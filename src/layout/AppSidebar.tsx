@@ -74,8 +74,8 @@ const AppSidebar: React.FC = () => {
       clientOnly: true,
     },
     {
-      icon: <GridIcon />, // Reusing GridIcon or maybe another icon if available. I see GridIcon imported at top.
-      name: "Biblioteca",
+      icon: <GridIcon />,
+      name: "Minhas Imagens",
       path: "/media-library",
     },
     {

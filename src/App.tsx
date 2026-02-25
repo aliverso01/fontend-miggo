@@ -34,6 +34,8 @@ import Checkout from "./pages/Subscription/Checkout";
 import Success from "./pages/Subscription/Success";
 import Cancel from "./pages/Subscription/Cancel";
 import BrandkitPage from "./pages/Brandkit/BrandkitPage";
+import TermsOfUse from "./pages/Legal/TermsOfUse";
+import PrivacyPolicy from "./pages/Legal/PrivacyPolicy";
 
 export default function App() {
   return (
@@ -95,6 +97,10 @@ export default function App() {
           {/* Auth Layout */}
           <Route path="/signin" element={<SignIn />} />
           <Route path="/signup" element={<SignUp />} />
+
+          {/* Legal Pages (public) */}
+          <Route path="/terms" element={<TermsOfUse />} />
+          <Route path="/privacy" element={<PrivacyPolicy />} />
 
           {/* Fallback Route */}
           <Route path="*" element={<NotFound />} />

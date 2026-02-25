@@ -13,41 +13,40 @@ export default function AuthLayout({
       {/* ── Painel ESQUERDO: logo + formulário ── */}
       <div className="flex flex-col w-full lg:w-1/2 min-h-screen lg:h-screen lg:overflow-y-auto">
 
-        {/* Mobile: logo + form agrupados e centralizados juntos */}
-        {/* Desktop: logo topo, form centrado verticalmente */}
-        <div className="flex flex-1 flex-col items-center justify-center px-6 py-10 lg:py-0">
+        {/* Container centralizado verticamente e horizontalmente */}
+        <div className="flex flex-1 flex-col items-center justify-center px-6 py-10">
 
-          {/* Logo — centralizado com o form no mobile, topo no desktop */}
-          <div className="w-full max-w-md mb-8">
-            <Link to="/">
-              <img
-                className="dark:hidden"
-                src="/images/logo/logo_dark_expanded.svg"
-                alt="Miggo"
-                width={150}
-                height={62}
-              />
-              <img
-                className="hidden dark:block"
-                src="/images/logo/logo_light_expanded.svg"
-                alt="Miggo"
-                width={150}
-                height={62}
-              />
-            </Link>
-          </div>
+          {/* Bloco logo + form juntos, com largura máxima */}
+          <div style={{ width: "100%", maxWidth: "420px" }}>
 
-          {/* Formulário */}
-          <div className="w-full max-w-md">
+            {/* Logo grande e centralizado */}
+            <div style={{ textAlign: "center", marginBottom: "2rem" }}>
+              <Link to="/" className="inline-block">
+                <img
+                  className="dark:hidden"
+                  src="/images/logo/logo_dark_expanded.svg"
+                  alt="Miggo"
+                  style={{ width: "280px", maxWidth: "80vw", height: "auto" }}
+                />
+                <img
+                  className="hidden dark:block"
+                  src="/images/logo/logo_light_expanded.svg"
+                  alt="Miggo"
+                  style={{ width: "280px", maxWidth: "80vw", height: "auto" }}
+                />
+              </Link>
+            </div>
+
+            {/* Formulário */}
             {children}
           </div>
         </div>
       </div>
 
-      {/* ── Painel DIREITO: banner.png cover (só desktop) ── */}
+      {/* ── Painel DIREITO: banner cover (só desktop) ── */}
       <div className="hidden lg:block lg:w-1/2 h-screen sticky top-0">
         <img
-          src="/images/grid-image/banner.png"
+          src="/images/grid-image/banner.webp"
           alt="Miggo Banner"
           className="w-full h-full object-cover"
         />
