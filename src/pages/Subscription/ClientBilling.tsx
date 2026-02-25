@@ -40,7 +40,7 @@ export default function ClientBilling() {
     const [plans, setPlans] = useState<Plan[]>([]);
 
     // Using the same API Key pattern
-    const API_KEY = "Api-Key vxQRQtgZ.M9ppHygHa4hS32hnkTshmm1kxTD3qCSS";
+    const API_KEY = import.meta.env.VITE_MIGGO_API_KEY;
 
     // Fetch Client ID for the current user
     useEffect(() => {
@@ -76,7 +76,7 @@ export default function ClientBilling() {
                     setPlans(data);
                 } else {
                     // Fallback purely for dev/consistency with Plans.tsx
-                    const retryResponse = await fetch('http://localhost:8000/api/v1/subscription/plan/list/', {
+                    const retryResponse = await fetch(`${import.meta.env.VITE_API_BASE_URL}/api/v1/subscription/plan/list/`, {
                         headers: { 'Authorization': API_KEY }
                     });
                     if (retryResponse.ok) {

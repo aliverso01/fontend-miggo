@@ -23,7 +23,7 @@ export const useSubscription = (clientId: number | undefined | null) => {
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState<string | null>(null);
 
-    const API_KEY = "Api-Key vxQRQtgZ.M9ppHygHa4hS32hnkTshmm1kxTD3qCSS";
+    const API_KEY = import.meta.env.VITE_MIGGO_API_KEY;
 
     const fetchSubscription = useCallback(async () => {
         if (!clientId) {
@@ -35,6 +35,7 @@ export const useSubscription = (clientId: number | undefined | null) => {
         setError(null);
         try {
             const response = await fetch(`/api/v1/subscription/list/?client_id=${clientId}`, {
+                credentials: 'include',
                 headers: {
                     'Authorization': API_KEY
                 }

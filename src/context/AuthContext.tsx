@@ -58,7 +58,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
                     credentials: "include",
                     headers: {
                         "Content-Type": "application/json",
-                        Authorization: "Api-Key vxQRQtgZ.M9ppHygHa4hS32hnkTshmm1kxTD3qCSS",
+                        Authorization: import.meta.env.VITE_MIGGO_API_KEY,
                     },
                     body: JSON.stringify(credentials),
                 }
@@ -98,7 +98,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
                 credentials: "include",
                 headers: {
                     "Content-Type": "application/json",
-                    Authorization: "Api-Key vxQRQtgZ.M9ppHygHa4hS32hnkTshmm1kxTD3qCSS",
+                    Authorization: import.meta.env.VITE_MIGGO_API_KEY,
                 },
             });
         } catch (e) {
@@ -121,7 +121,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
                     credentials: "include",
                     headers: {
                         "Content-Type": "application/json",
-                        Authorization: "Api-Key vxQRQtgZ.M9ppHygHa4hS32hnkTshmm1kxTD3qCSS",
+                        Authorization: import.meta.env.VITE_MIGGO_API_KEY,
                     },
                     body: JSON.stringify(data),
                 }
@@ -152,9 +152,10 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
                 "/api/v1/account/register/",
                 {
                     method: "POST",
+                    credentials: "include",
                     headers: {
                         "Content-Type": "application/json",
-                        Authorization: "Api-Key vxQRQtgZ.M9ppHygHa4hS32hnkTshmm1kxTD3qCSS",
+                        Authorization: import.meta.env.VITE_MIGGO_API_KEY,
                     },
                     body: JSON.stringify(data),
                 }

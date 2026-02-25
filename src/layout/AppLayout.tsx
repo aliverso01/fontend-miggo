@@ -23,7 +23,7 @@ const LayoutContent: React.FC = () => {
         try {
           // First get list to find ID
           const listRes = await fetch("/api/v1/client/list/", {
-            headers: { Authorization: "Api-Key vxQRQtgZ.M9ppHygHa4hS32hnkTshmm1kxTD3qCSS" }
+            headers: { Authorization: import.meta.env.VITE_MIGGO_API_KEY }
           });
           if (listRes.ok) {
             const clients = await listRes.json();
@@ -31,7 +31,7 @@ const LayoutContent: React.FC = () => {
             if (myClient) {
               // Then get retrieve for accurate active status
               const detailRes = await fetch(`/api/v1/client/retrieve/${myClient.id}/`, {
-                headers: { Authorization: "Api-Key vxQRQtgZ.M9ppHygHa4hS32hnkTshmm1kxTD3qCSS" }
+                headers: { Authorization: import.meta.env.VITE_MIGGO_API_KEY }
               });
               if (detailRes.ok) {
                 const detail = await detailRes.json();

@@ -29,7 +29,7 @@ export default function SocialConnections() {
     // Subscription Check
     const { hasActiveSubscription, loading: subLoading } = useSubscription(selectedClient ? Number(selectedClient) : null);
 
-    const API_KEY = "Api-Key vxQRQtgZ.M9ppHygHa4hS32hnkTshmm1kxTD3qCSS";
+    const API_KEY = import.meta.env.VITE_MIGGO_API_KEY;
 
     const [integrations, setIntegrations] = useState<any[]>([]);
 

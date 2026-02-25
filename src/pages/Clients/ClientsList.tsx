@@ -47,12 +47,13 @@ export default function ClientsList() {
         company: "", // For update if needed, though creation doesn't seem to take it in the prompt example
     });
 
-    const API_KEY = "Api-Key vxQRQtgZ.M9ppHygHa4hS32hnkTshmm1kxTD3qCSS";
+    const API_KEY = import.meta.env.VITE_MIGGO_API_KEY
 
     const fetchClients = async () => {
         setLoading(true);
         try {
             const response = await fetch("/api/v1/client/list/", {
+                credentials: "include",
                 headers: { Authorization: API_KEY },
             });
             if (!response.ok) throw new Error("Failed to fetch clients");
@@ -79,6 +80,7 @@ export default function ClientsList() {
         try {
             const response = await fetch("/api/v1/account/create/", {
                 method: "POST",
+                credentials: "include",
                 headers: {
                     "Content-Type": "application/json",
                     Authorization: API_KEY,
@@ -122,10 +124,11 @@ export default function ClientsList() {
         e.preventDefault();
         if (!currentClient) return;
         try {
-            // Prompt says update endpoint: http://localhost:8000/api/v1/client/update/id::/
+            // Prompt says update endpoint: import.meta.env.VITE_API_BASE_URL/api/v1/client/update/id::/
             // Assuming it means /api/v1/client/update/${id}/
             const response = await fetch(`/api/v1/client/update/${currentClient.id}/`, {
                 method: "PATCH",
+                credentials: "include",
                 headers: {
                     "Content-Type": "application/json",
                     Authorization: API_KEY,
@@ -159,6 +162,7 @@ export default function ClientsList() {
         try {
             const response = await fetch(`/api/v1/account/delete/${currentClient.user}/`, {
                 method: "DELETE",
+                credentials: "include",
                 headers: { Authorization: API_KEY },
             });
 

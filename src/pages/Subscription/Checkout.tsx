@@ -41,7 +41,7 @@ export default function Checkout() {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
-                    'Authorization': "Api-Key vxQRQtgZ.M9ppHygHa4hS32hnkTshmm1kxTD3qCSS" // Using same key as Plans.tsx
+                    'Authorization': import.meta.env.VITE_MIGGO_API_KEY // Using same key as Plans.tsx
                 },
                 body: JSON.stringify({
                     plan_price_id: priceIdPayload, // Using variable which holds Stripe ID if found

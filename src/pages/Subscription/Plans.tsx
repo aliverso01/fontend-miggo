@@ -57,7 +57,7 @@ export default function Plans() {
             if (user?.role === 'client') {
                 try {
                     const response = await fetch("/api/v1/client/list/", {
-                        headers: { Authorization: "Api-Key vxQRQtgZ.M9ppHygHa4hS32hnkTshmm1kxTD3qCSS" },
+                        headers: { Authorization: import.meta.env.VITE_MIGGO_API_KEY },
                     });
                     if (response.ok) {
                         const data = await response.json();
@@ -81,13 +81,13 @@ export default function Plans() {
     const [selectedInterval, setSelectedInterval] = useState<string>('Semestral');
 
     // Using the same API Key pattern found in ClientsList.tsx
-    const API_KEY = "Api-Key vxQRQtgZ.M9ppHygHa4hS32hnkTshmm1kxTD3qCSS";
+    const API_KEY = import.meta.env.VITE_MIGGO_API_KEY;
 
     useEffect(() => {
         const fetchPlans = async () => {
             try {
                 // The URL provided is absolute localhost, we can use relative if proxy is set up, 
-                // but ClientsList used relative /api/v1... while prompt gave http://localhost:8000...
+                // but ClientsList used relative /api/v1... while prompt gave import.meta.env.VITE_API_BASE_URL...
                 // I will use relative path /api/v1/subscription/plan/list/ assuming proxy exists
                 // If not, I will revert to full URL. ClientsList uses /api/v1/...
 
@@ -107,7 +107,7 @@ export default function Plans() {
                 console.error("Error fetching plans:", err);
                 // Fallback attempt with full URL if relative failed (just in case dev setup differs)
                 try {
-                    const response = await fetch('http://localhost:8000/api/v1/subscription/plan/list/', {
+                    const response = await fetch(`${import.meta.env.VITE_API_BASE_URL}/api/v1/subscription/plan/list/`, {
                         headers: {
                             'Authorization': API_KEY
                         }

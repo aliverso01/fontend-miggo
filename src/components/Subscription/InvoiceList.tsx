@@ -11,7 +11,7 @@ interface InvoiceListProps {
     onStatusUpdated?: () => void;
 }
 
-const API_KEY = "Api-Key vxQRQtgZ.M9ppHygHa4hS32hnkTshmm1kxTD3qCSS";
+const API_KEY = import.meta.env.VITE_MIGGO_API_KEY
 
 const STATUS_OPTIONS = [
     { value: 'PAID', label: 'Pago' },
@@ -71,6 +71,7 @@ const InvoiceList: React.FC<InvoiceListProps> = ({
         try {
             const res = await fetch(`/api/v1/subscription/invoice/update/${invoiceId}/`, {
                 method: 'PATCH',
+                credentials: 'include',
                 headers: {
                     'Authorization': API_KEY,
                     'Content-Type': 'application/json',

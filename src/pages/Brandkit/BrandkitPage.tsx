@@ -62,7 +62,7 @@ export default function BrandkitPage() {
         if (isAdmin) { setResolvingClient(false); return; }
         if (!user) return;
         fetch('/api/v1/client/list/', {
-            headers: { Authorization: 'Api-Key vxQRQtgZ.M9ppHygHa4hS32hnkTshmm1kxTD3qCSS' },
+            headers: { Authorization: import.meta.env.VITE_MIGGO_API_KEY },
         })
             .then(r => r.ok ? r.json() : [])
             .then((data: any[]) => {
@@ -93,7 +93,7 @@ export default function BrandkitPage() {
     useEffect(() => {
         if (!isAdmin) return;
         fetch('/api/v1/client/list/', {
-            headers: { Authorization: 'Api-Key vxQRQtgZ.M9ppHygHa4hS32hnkTshmm1kxTD3qCSS' },
+            headers: { Authorization: import.meta.env.VITE_MIGGO_API_KEY },
         })
             .then(r => r.ok ? r.json() : [])
             .then(data => setClients(Array.isArray(data) ? data : []))

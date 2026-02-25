@@ -38,7 +38,7 @@ export const useInvoices = (clientId: number | null | undefined) => {
     const [error, setError] = useState<string | null>(null);
     const { user } = useAuthContext();
 
-    const API_KEY = "Api-Key vxQRQtgZ.M9ppHygHa4hS32hnkTshmm1kxTD3qCSS";
+    const API_KEY = import.meta.env.VITE_MIGGO_API_KEY;
 
     const fetchInvoices = useCallback(async () => {
         setLoading(true);
@@ -50,6 +50,7 @@ export const useInvoices = (clientId: number | null | undefined) => {
             }
 
             const response = await fetch(url, {
+                credentials: 'include',
                 headers: {
                     'Authorization': API_KEY
                 }

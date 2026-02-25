@@ -42,7 +42,7 @@ export default function SubscriptionDashboard({ subscription, plans }: Subscript
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
-                    'Authorization': "Api-Key vxQRQtgZ.M9ppHygHa4hS32hnkTshmm1kxTD3qCSS"
+                    'Authorization': import.meta.env.VITE_MIGGO_API_KEY
                 },
                 body: JSON.stringify({ subscription_id: subscription.id })
             });

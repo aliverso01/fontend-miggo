@@ -49,7 +49,7 @@ export default function InstagramSuccess() {
                 if (!platformId) return;
 
                 try {
-                    const API_KEY = "Api-Key vxQRQtgZ.M9ppHygHa4hS32hnkTshmm1kxTD3qCSS";
+                    const API_KEY = import.meta.env.VITE_MIGGO_API_KEY;
                     // 1. Find the integration for this client
                     const listRes = await fetch(`/api/v1/post/platform-integration/list/?client_id=${clientId}`, {
                         headers: { Authorization: API_KEY },

@@ -39,7 +39,7 @@ export default function IntegrationLogs() {
     const [selectedLog, setSelectedLog] = useState<LogEntry | null>(null);
     const [isDetailOpen, setIsDetailOpen] = useState(false);
 
-    const API_KEY = "Api-Key vxQRQtgZ.M9ppHygHa4hS32hnkTshmm1kxTD3qCSS";
+    const API_KEY = import.meta.env.VITE_MIGGO_API_KEY;
 
     useEffect(() => {
         if (user && user.role !== 'admin') {
