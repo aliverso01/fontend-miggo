@@ -36,7 +36,7 @@ export interface Plan {
 export default function ClientBilling() {
     const { user } = useAuthContext();
     const [clientId, setClientId] = useState<number | null>(null);
-    const { subscription } = useSubscription(clientId);
+    const { subscription, isTrialExpired } = useSubscription(clientId);
     const [plans, setPlans] = useState<Plan[]>([]);
 
     // Using the same API Key pattern
@@ -118,7 +118,7 @@ export default function ClientBilling() {
             <PageBreadcrumb pageTitle="Faturamento" />
 
             <div className="flex flex-col items-center justify-center space-y-8 p-4">
-                <SubscriptionDashboard subscription={subscription} plans={plans} />
+                <SubscriptionDashboard subscription={subscription} plans={plans} isTrialExpired={isTrialExpired} />
             </div>
         </>
     );

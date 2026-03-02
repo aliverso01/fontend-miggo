@@ -57,6 +57,11 @@ export default function EditPostModal({
     const [selectedImage, setSelectedImage] = useState<string | null>(null);
     const [pdfBlobUrl, setPdfBlobUrl] = useState<string | null>(null);
     const [importingTemplate, setImportingTemplate] = useState(false);
+    const [activeTabPlatform, setActiveTabPlatform] = useState<string | null>(null);
+
+    const [schedulingReview, setSchedulingReview] = useState(false);
+
+    const API_KEY = import.meta.env.VITE_MIGGO_API_KEY;
 
     const isClient = userRole === 'client';
 
@@ -365,20 +370,53 @@ export default function EditPostModal({
                                     />
                                 </div>
                             </div>
-                            <div>
-                                <Label>Formato</Label>
+                            <div className="pt-2 border-t border-gray-100 dark:border-gray-800">
+                                <Label>Plataforma e Formato</Label>
+
+                                <div className="flex flex-wrap gap-2 mb-3 mt-1">
+                                    {Array.from(new Set(formats.map(f => f.platform))).map(plat => {
+                                        const actualPlat = formats.find(f => f.id === Number(formData.post_format))?.platform;
+                                        const currentPlat = activeTabPlatform || actualPlat || (formats.length > 0 ? Array.from(new Set(formats.map(fm => fm.platform)))[0] : '');
+                                        const isSelected = currentPlat === plat;
+                                        return (
+                                            <button
+                                                key={plat}
+                                                type="button"
+                                                disabled={isClient}
+                                                onClick={() => {
+                                                    setActiveTabPlatform(plat);
+                                                    // Limpa a seleção do formato ao trocar de plataforma
+                                                    handleInputChange({ target: { name: 'post_format', value: '' } } as any);
+                                                }}
+                                                className={`px-4 py-2 rounded-lg text-sm font-semibold transition-colors disabled:opacity-60 disabled:cursor-not-allowed ${isSelected ? 'bg-brand-600 text-white' : 'bg-gray-100 text-gray-600 hover:bg-gray-200 dark:bg-gray-800 dark:text-gray-300 dark:hover:bg-gray-700'}`}
+                                            >
+                                                {plat}
+                                            </button>
+                                        );
+                                    })}
+                                </div>
+
                                 <select
                                     name="post_format"
                                     className="w-full h-11 rounded-lg border border-gray-300 bg-transparent px-4 py-2.5 text-sm outline-none focus:border-brand-300 dark:border-gray-700 dark:bg-gray-900 dark:text-white disabled:opacity-60 disabled:bg-gray-50 dark:disabled:bg-gray-800"
-                                    value={formData.post_format}
-                                    onChange={handleInputChange as any}
+                                    value={formData.post_format || ''}
+                                    onChange={(e) => {
+                                        setActiveTabPlatform(null);
+                                        handleInputChange(e as any);
+                                    }}
                                     required
                                     disabled={isClient}
                                 >
-                                    <option value="" disabled>Selecione...</option>
-                                    {formats.map(f => (
-                                        <option key={f.id} value={f.id}>{f.platform} - {f.name}</option>
-                                    ))}
+                                    <option value="" disabled>Selecione um formato...</option>
+                                    {formats
+                                        .filter(f => {
+                                            const actualPlat = formats.find(fmt => fmt.id === Number(formData.post_format))?.platform;
+                                            const currentPlat = activeTabPlatform || actualPlat || (formats.length > 0 ? Array.from(new Set(formats.map(fm => fm.platform)))[0] : '');
+                                            return f.platform === currentPlat;
+                                        })
+                                        .map(f => (
+                                            <option key={f.id} value={f.id}>{f.name}</option>
+                                        ))}
                                 </select>
                             </div>
                         </form>
@@ -451,14 +489,6 @@ export default function EditPostModal({
                                         Salvar
                                     </Button>
 
-                                    <Button
-                                        className="w-full bg-[#7ACAC9] hover:bg-[#68b0af] text-white justify-start"
-                                        startIcon={<CalenderIcon className="w-5 h-5" />}
-                                        onClick={() => onStatusAction(3)} // Agendado
-                                        disabled={loading}
-                                    >
-                                        Agendar Envio
-                                    </Button>
 
                                     <Button
                                         className="w-full bg-[#7ACAC9] hover:bg-[#68b0af] text-white justify-start"
@@ -476,6 +506,51 @@ export default function EditPostModal({
                                         disabled={loading}
                                     >
                                         Enviar Para Revisão
+                                    </Button>
+
+                                    {/* Agendar Revisão — usa data/hora do post, envia via ManyChat */}
+                                    <Button
+                                        className="w-full bg-[#7ACAC9] hover:bg-[#68b0af] text-white justify-start"
+                                        startIcon={<CalenderIcon className="w-5 h-5" />}
+                                        disabled={loading || schedulingReview || !formData.post_date || !formData.post_time}
+                                        onClick={async () => {
+                                            if (!currentPostId || !formData.post_date || !formData.post_time) {
+                                                alert('O post precisa ter data e hora definidas para agendar a revisão.');
+                                                return;
+                                            }
+                                            // Monta ISO 8601. Se post_time for HH:mm, adiciona :00.
+                                            const timeWithSeconds = formData.post_time.length === 5 ? `${formData.post_time}:00` : formData.post_time;
+                                            const scheduledAt = `${formData.post_date}T${timeWithSeconds}-03:00`;
+
+                                            setSchedulingReview(true);
+                                            try {
+                                                const res = await fetch('/api/v1/post/schedule-review/', {
+                                                    method: 'POST',
+                                                    headers: {
+                                                        'Content-Type': 'application/json',
+                                                        'Authorization': API_KEY,
+                                                    },
+                                                    body: JSON.stringify({
+                                                        post_id: currentPostId,
+                                                        scheduled_at: scheduledAt,
+                                                    }),
+                                                });
+                                                const data = await res.json();
+                                                if (res.ok) {
+                                                    const [y, m, d] = formData.post_date.split('-');
+                                                    const displayDate = `${d}/${m}/${y}`;
+                                                    alert(`✅ Revisão agendada para ${displayDate} às ${formData.post_time}`);
+                                                } else {
+                                                    alert(`Erro: ${data.error || 'Não foi possível agendar.'}`);
+                                                }
+                                            } catch {
+                                                alert('Erro de conexão ao agendar revisão.');
+                                            } finally {
+                                                setSchedulingReview(false);
+                                            }
+                                        }}
+                                    >
+                                        {schedulingReview ? 'Agendando...' : 'Agendar Revisão'}
                                     </Button>
 
                                     <Button

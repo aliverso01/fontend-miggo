@@ -8,14 +8,13 @@ interface Subscription {
     end_date: string;
     expires_at: string;
     trial: boolean;
-    status: string;
+    status: string; // 'ACTIVE' | 'TRIAL' | 'EXPIRED' | 'CANCELLED'
     plan_meta: {
         id: number;
         key: string;
         value: string;
         plan: number;
     }[];
-    // Add other fields as needed
 }
 
 export const useSubscription = (clientId: number | undefined | null) => {
@@ -42,20 +41,17 @@ export const useSubscription = (clientId: number | undefined | null) => {
             });
 
             if (!response.ok) {
-                // If 404 or empty list logic
                 setSubscription(null);
                 return;
             }
 
             const data = await response.json();
-            // Assuming data is a list, we take the active one
-            // We should check for status 'active' or 'trialing'
-            // For now, take the first one found or filtering
             if (Array.isArray(data) && data.length > 0) {
-                // Sort by ID desc or expiration? Assuming latest is what we want.
-                // Or filter by status.
-                const activeSub = data.find((s: Subscription) => s.status === 'active' || s.trial);
-                setSubscription(activeSub || data[0]); // Fallback to first if explicit active not found but exists
+                // Prioridade: ACTIVE > TRIAL > qualquer outra
+                const activeSub = data.find((s: Subscription) => s.status === 'ACTIVE')
+                    || data.find((s: Subscription) => s.status === 'TRIAL')
+                    || data[0];
+                setSubscription(activeSub);
             } else {
                 setSubscription(null);
             }
@@ -72,11 +68,25 @@ export const useSubscription = (clientId: number | undefined | null) => {
         fetchSubscription();
     }, [fetchSubscription]);
 
+    // Trial expirado = é trial, mas expires_at já passou
+    const isTrialExpired = !!(
+        subscription?.trial &&
+        subscription.status === 'TRIAL' &&
+        new Date(subscription.expires_at) < new Date()
+    );
+
+    const hasActiveSubscription = !!(
+        subscription &&
+        (subscription.status === 'ACTIVE' ||
+            (subscription.status === 'TRIAL' && !isTrialExpired))
+    );
+
     return {
         subscription,
         loading,
         error,
-        hasActiveSubscription: !!subscription && (subscription.status === 'active' || subscription.trial === true),
+        hasActiveSubscription,
+        isTrialExpired,
         checkSubscription: fetchSubscription
     };
 };

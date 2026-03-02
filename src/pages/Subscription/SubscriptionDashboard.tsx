@@ -8,9 +8,10 @@ import InvoiceList from '../../components/Subscription/InvoiceList';
 interface SubscriptionDashboardProps {
     subscription: any;
     plans: Plan[];
+    isTrialExpired?: boolean;
 }
 
-export default function SubscriptionDashboard({ subscription, plans }: SubscriptionDashboardProps) {
+export default function SubscriptionDashboard({ subscription, plans, isTrialExpired }: SubscriptionDashboardProps) {
     const navigate = useNavigate();
     const [canceling, setCanceling] = useState(false);
     const { invoices, loading: loadingInvoices, error: errorInvoices } = useInvoices(subscription.client);
@@ -92,13 +93,26 @@ export default function SubscriptionDashboard({ subscription, plans }: Subscript
                         <h2 className="text-2xl font-bold text-gray-900 dark:text-white">Gerenciar Assinatura</h2>
                         <p className="text-gray-500">Detalhes do seu plano atual e pagamentos.</p>
                     </div>
-                    <span className={`mt-4 md:mt-0 px-4 py-1.5 rounded-full text-sm font-semibold tracking-wide ${subscription.status === 'active' ? 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400' :
-                        subscription.status === 'trial' ? 'bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400' :
-                            'bg-red-100 text-red-700'
+                    <span className={`mt-4 md:mt-0 px-4 py-1.5 rounded-full text-sm font-semibold tracking-wide ${subscription.status === 'ACTIVE' ? 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400' :
+                            subscription.status === 'TRIAL' ? 'bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400' :
+                                'bg-red-100 text-red-700'
                         }`}>
-                        {subscription.trial ? 'Trial' : subscription.status.toUpperCase()}
+                        {subscription.trial ? (isTrialExpired ? 'TRIAL EXPIRADO' : 'TRIAL') : subscription.status.toUpperCase()}
                     </span>
                 </div>
+
+                {/* Banner de trial expirado */}
+                {isTrialExpired && (
+                    <div className="mb-6 p-4 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-xl flex items-start gap-3">
+                        <span className="text-red-500 text-2xl">⚠️</span>
+                        <div>
+                            <p className="font-semibold text-red-700 dark:text-red-400">Seu trial expirou!</p>
+                            <p className="text-sm text-red-600 dark:text-red-300 mt-1">
+                                Efetive sua assinatura agora para continuar acessando todos os recursos do Miggo.
+                            </p>
+                        </div>
+                    </div>
+                )}
 
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
                     <div className="p-4 bg-gray-50 dark:bg-gray-800/50 rounded-xl border border-gray-100 dark:border-gray-800">
@@ -112,12 +126,17 @@ export default function SubscriptionDashboard({ subscription, plans }: Subscript
                     </div>
 
                     <div className="p-4 bg-gray-50 dark:bg-gray-800/50 rounded-xl border border-gray-100 dark:border-gray-800">
-                        <p className="text-xs text-gray-500 uppercase font-semibold mb-2">Próxima Cobrança</p>
-                        <p className="text-xl font-bold text-gray-900 dark:text-white">
-                            {new Date(subscription.expires_at).toLocaleDateString()}
+                        <p className="text-xs text-gray-500 uppercase font-semibold mb-2">
+                            {subscription.trial ? 'Trial Expira em' : 'Próxima Cobrança'}
+                        </p>
+                        <p className={`text-xl font-bold ${isTrialExpired ? 'text-red-600 dark:text-red-400' : 'text-gray-900 dark:text-white'}`}>
+                            {/* Trial: mostra expires_at (fim do trial). Ativo: mostra end_date (próxima cobrança mensal) */}
+                            {new Date(subscription.trial ? subscription.expires_at : subscription.end_date).toLocaleDateString('pt-BR')}
                         </p>
                         <p className="text-sm text-gray-500 mt-1">
-                            Renovação automática
+                            {subscription.trial
+                                ? (isTrialExpired ? 'Trial encerrado' : 'Acesso gratuito')
+                                : 'Renovação automática'}
                         </p>
                     </div>
 

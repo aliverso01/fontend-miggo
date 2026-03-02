@@ -842,8 +842,14 @@ export default function ContentKanban() {
                 let errorMessage = `Falha ao ${actionPt} post.`;
                 try {
                     const errorJson = JSON.parse(errorText);
-                    // Check for "error" field specifically as requested
-                    if (errorJson.error) {
+                    // Check for nested API errors (e.g. from Late API)
+                    if (errorJson.post_publish_response?.error) {
+                        errorMessage = typeof errorJson.post_publish_response.error === 'string'
+                            ? errorJson.post_publish_response.error
+                            : JSON.stringify(errorJson.post_publish_response.error);
+                    } else if (errorJson.details) {
+                        errorMessage = typeof errorJson.details === 'string' ? errorJson.details : JSON.stringify(errorJson.details);
+                    } else if (errorJson.error) {
                         errorMessage = typeof errorJson.error === 'string' ? errorJson.error : JSON.stringify(errorJson.error);
                     } else if (errorJson.detail) {
                         errorMessage = errorJson.detail;
@@ -984,7 +990,13 @@ export default function ContentKanban() {
                             <Select
                                 options={[
                                     { value: "", label: "Todos" },
-                                    ...Object.entries(STATUS_LABELS).map(([key, label]) => ({ value: key, label }))
+                                    ...Object.entries(STATUS_LABELS)
+                                        .filter(([key]) => {
+                                            // Clientes não veem 'A CRIAR' (1) nem 'RASCUNHO' (2)
+                                            if (user?.role === 'client' && (Number(key) === 1 || Number(key) === 2)) return false;
+                                            return true;
+                                        })
+                                        .map(([key, label]) => ({ value: key, label }))
                                 ]}
                                 placeholder="Status"
                                 onChange={(val) => setSelectedStatus(val === "" ? "" : Number(val))}
@@ -1023,9 +1035,11 @@ export default function ContentKanban() {
                             <AngleRightIcon className="w-5 h-5" />
                         </button>
                     </div>
-                    <Button onClick={openModal} startIcon={<PlusIcon className="size-5" />}>
-                        Novo Post
-                    </Button>
+                    {user?.role !== 'client' && (
+                        <Button onClick={openModal} startIcon={<PlusIcon className="size-5" />}>
+                            Novo Post
+                        </Button>
+                    )}
                 </div>
 
                 <div className="flex flex-1 gap-6 overflow-x-auto pb-4">
@@ -1035,6 +1049,9 @@ export default function ContentKanban() {
                             date={date}
                             dayName={dayNames[index]}
                             posts={enrichedPosts.filter((p: Post) => {
+                                // Clientes não veem posts 'A CRIAR' (1) nem 'RASCUNHO' (2)
+                                if (user?.role === 'client' && (p.status === 1 || p.status === 2)) return false;
+
                                 const matchDate = p.post_date === date;
                                 const matchClient = selectedClient ? p.client === selectedClient : true;
                                 const matchStatus = selectedStatus ? p.status === selectedStatus : true;

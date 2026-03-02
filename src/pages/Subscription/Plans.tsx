@@ -5,6 +5,7 @@ import { useAuthContext } from '../../context/AuthContext';
 import PageMeta from '../../components/common/PageMeta';
 import PageBreadcrumb from '../../components/common/PageBreadCrumb';
 import Button from '../../components/ui/button/Button';
+import { useSubscription } from '../../hooks/useSubscription';
 
 
 export interface Feature {
@@ -48,8 +49,8 @@ export interface SubscriptionPayload {
 export default function Plans() {
     const { user } = useAuthContext();
     const [clientId, setClientId] = useState<number | null>(null);
-
-    // const { subscription, hasActiveSubscription } = useSubscription(clientId); // Not needed anymore
+    const { subscription, hasActiveSubscription } = useSubscription(clientId);
+    const [trialLoading, setTrialLoading] = useState<number | null>(null); // id do plan sendo processado
 
     // Fetch Client ID for the current user
     useEffect(() => {
@@ -136,6 +137,56 @@ export default function Plans() {
     };
 
     const navigate = useNavigate();
+
+    const handleStartTrial = async (plan: Plan) => {
+        if (!clientId) {
+            alert('Erro: Cliente não identificado. Entre em contato com o suporte.');
+            return;
+        }
+        const priceObj = getPrice(plan);
+        if (!priceObj) {
+            alert('Erro: Preço indisponível para este plano.');
+            return;
+        }
+
+        // Se já tem assinatura/trial ativo, redirecionar para checkout
+        if (subscription) {
+            if (subscription.trial) {
+                alert('Você já possui um trial ativo. Efetive sua assinatura para continuar.');
+            } else {
+                alert('Você já possui uma assinatura ativa.');
+            }
+            return;
+        }
+
+        setTrialLoading(plan.id);
+        try {
+            const response = await fetch('/api/v1/subscription/start-trial/', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': import.meta.env.VITE_MIGGO_API_KEY,
+                },
+                body: JSON.stringify({
+                    plan_price_id: priceObj.id,
+                    user_id: user?.id,
+                    trial_days: 7,
+                }),
+            });
+            const data = await response.json();
+            if (response.ok) {
+                alert(`✅ Trial iniciado! Você tem 7 dias grátis no plano ${plan.name}.\nApós o trial, efetive sua assinatura para continuar acessando.`);
+                navigate('/billing');
+            } else {
+                alert(`Erro: ${data.error || 'Não foi possível iniciar o trial.'}`);
+            }
+        } catch (err) {
+            console.error(err);
+            alert('Erro de conexão ao iniciar trial.');
+        } finally {
+            setTrialLoading(null);
+        }
+    };
 
     const handleSubscribe = (plan: Plan) => {
         if (!clientId) {
@@ -267,9 +318,25 @@ export default function Plans() {
                                                         })}
                                                 </div>
 
-                                                <Button className="w-full justify-center" onClick={() => handleSubscribe(plan)}>
-                                                    Assinar Agora
-                                                </Button>
+                                                <div className="flex flex-col gap-2 mt-2">
+                                                    {/* Botão de Trial */}
+                                                    {!hasActiveSubscription && (
+                                                        <Button
+                                                            variant="outline"
+                                                            className="w-full justify-center border-brand-300 text-brand-600 hover:bg-brand-50 dark:border-brand-700 dark:text-brand-400"
+                                                            onClick={() => handleStartTrial(plan)}
+                                                            disabled={trialLoading === plan.id}
+                                                        >
+                                                            {trialLoading === plan.id ? 'Iniciando...' : '🎁 Iniciar Trial Grátis (7 dias)'}
+                                                        </Button>
+                                                    )}
+                                                    {/* Botão de assinatura paga */}
+                                                    <Button className="w-full justify-center" onClick={() => handleSubscribe(plan)}>
+                                                        {hasActiveSubscription && subscription?.trial
+                                                            ? 'Efetivar Assinatura'
+                                                            : 'Assinar Agora'}
+                                                    </Button>
+                                                </div>
                                             </div>
                                         );
                                     })}
