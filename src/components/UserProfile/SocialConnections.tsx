@@ -177,19 +177,16 @@ export default function SocialConnections() {
                 const data = await response.json();
                 console.log("Connect response data:", data);
 
-                // Prioritize connection_url, fallback to redirect_url (e.g. for WhatsApp)
                 let targetUrl = data.connection_url || data.redirect_url;
+                const network = socialNetworks.find(n => n.id === platformId);
 
-                // Manual fallback for WhatsApp if URL is missing but creation succeeded
-                if (!targetUrl) {
-                    const network = socialNetworks.find(n => n.id === platformId);
-                    if (network?.name.toLowerCase().includes('whatsapp')) {
-                        // Construct success URL manually
-                        // We pass 'whatsapp' as connected param and a dummy profileId/username if not returned
-                        const pId = data.profile_id || "whatsapp_user";
-                        const pName = data.username || "WhatsApp User";
-                        targetUrl = `/whatsapp/success/${selectedClient}?connected=whatsapp&profileId=${pId}&username=${encodeURIComponent(pName)}`;
-                    }
+                // WhatsApp does not go to getlate.dev or external URL.
+                // The backend handles ManyChat integration and returns the active integration.
+                if (!targetUrl && network?.name.toLowerCase().includes('whatsapp')) {
+                    setIntegrations(prev => [...prev, data]);
+                    alert("WhatsApp conectado com sucesso!");
+                    setLoading(false);
+                    return;
                 }
 
                 if (targetUrl) {

@@ -93,6 +93,7 @@ export default function Plans() {
                 // If not, I will revert to full URL. ClientsList uses /api/v1/...
 
                 const response = await fetch('/api/v1/subscription/plan/list/', {
+                    credentials: 'include',
                     headers: {
                         'Authorization': API_KEY
                     }
@@ -109,6 +110,7 @@ export default function Plans() {
                 // Fallback attempt with full URL if relative failed (just in case dev setup differs)
                 try {
                     const response = await fetch(`${import.meta.env.VITE_API_BASE_URL}/api/v1/subscription/plan/list/`, {
+                        credentials: 'include',
                         headers: {
                             'Authorization': API_KEY
                         }
@@ -343,6 +345,16 @@ export default function Plans() {
                                 </div>
                             </>
                         )}
+
+                    {plans.length === 0 && !loading && !error && (
+                        <div className="flex flex-col items-center justify-center py-12 text-center w-full">
+                            <span className="text-4xl mb-4">🥲</span>
+                            <h3 className="text-lg font-semibold text-gray-800 dark:text-gray-200 mb-2">Nenhum plano disponível</h3>
+                            <p className="text-sm text-gray-500 dark:text-gray-400 max-w-sm">
+                                Não há planos configurados no momento. Entre em contato com o administrador do sistema para que os planos sejam cadastrados e você possa prosseguir.
+                            </p>
+                        </div>
+                    )}
                 </div>
             </div>
         </>
