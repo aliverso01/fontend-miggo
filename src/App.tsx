@@ -22,6 +22,7 @@ import AppLayout from "./layout/AppLayout";
 import { ScrollToTop } from "./components/common/ScrollToTop";
 import Briefing from "./pages/Briefing/Briefing";
 import ProtectedRoute from "./components/ProtectedRoute";
+import SubscriptionGuard from "./components/SubscriptionGuard";
 import Home from "./pages/Dashboard/Home";
 import EditorialCalendar from "./pages/EditorialCalendar/EditorialCalendar";
 import HistoryList from "./pages/History/HistoryList";
@@ -36,6 +37,8 @@ import Cancel from "./pages/Subscription/Cancel";
 import BrandkitPage from "./pages/Brandkit/BrandkitPage";
 import TermsOfUse from "./pages/Legal/TermsOfUse";
 import PrivacyPolicy from "./pages/Legal/PrivacyPolicy";
+import AgendaSugestao from "./pages/Agenda/AgendaSugestao";
+import SocialNetworksPage from "./pages/SocialNetworks/SocialNetworksPage";
 
 export default function App() {
   return (
@@ -45,52 +48,60 @@ export default function App() {
         <Routes>
           {/* Dashboard Layout */}
           <Route element={<ProtectedRoute />}>
-            <Route element={<AppLayout />}>
-              <Route index path="/" element={<Home />} />
+            <Route element={<SubscriptionGuard />}>
+              <Route element={<AppLayout />}>
+                <Route index path="/" element={<Home />} />
 
-              {/* Others Page */}
-              <Route path="/profile" element={<UserProfiles />} />
-              <Route path="/clients" element={<ClientsList />} />
-              <Route path="/plans" element={<Plans />} />
-              <Route path="/billing" element={<ClientBilling />} />
-              <Route path="/subscription/checkout" element={<Checkout />} />
-              <Route path="/subscription/success" element={<Success />} />
-              <Route path="/subscription/cancel" element={<Cancel />} />
-              <Route path="/briefing" element={<Briefing />} />
-              <Route path="/content" element={<ContentKanban />} />
-              <Route path="/calendar" element={<Calendar />} />
-              <Route path="/editorial-calendar" element={<EditorialCalendar />} />
-              <Route path="/history" element={<HistoryList />} />
-              <Route path="/media-library" element={<MediaLibrary />} />
-              <Route path="/blank" element={<Blank />} />
-              <Route path="/instagram/success/:clientId/*" element={<InstagramSuccess />} />
-              <Route path="/linkedin/success/:clientId/*" element={<InstagramSuccess />} />
-              <Route path="/whatsapp/success/:clientId/*" element={<InstagramSuccess />} />
+                {/* Others Page */}
+                <Route path="/profile" element={<UserProfiles />} />
+                <Route path="/clients" element={<ClientsList />} />
+                <Route path="/plans" element={<Plans />} />
+                <Route path="/billing" element={<ClientBilling />} />
+                <Route path="/subscription/checkout" element={<Checkout />} />
+                <Route path="/subscription/success" element={<Success />} />
+                <Route path="/subscription/cancel" element={<Cancel />} />
+                <Route path="/briefing" element={<Briefing />} />
+                <Route path="/content" element={<ContentKanban />} />
+                <Route path="/calendar" element={<Calendar />} />
+                <Route path="/editorial-calendar" element={<EditorialCalendar />} />
+                <Route path="/history" element={<HistoryList />} />
+                <Route path="/media-library" element={<MediaLibrary />} />
+                <Route path="/blank" element={<Blank />} />
+                <Route path="/instagram/success/:clientId/*" element={<InstagramSuccess />} />
+                <Route path="/linkedin/success/:clientId/*" element={<InstagramSuccess />} />
+                <Route path="/whatsapp/success/:clientId/*" element={<InstagramSuccess />} />
 
-              {/* Forms */}
-              <Route path="/form-elements" element={<FormElements />} />
+                {/* Forms */}
+                <Route path="/form-elements" element={<FormElements />} />
 
-              {/* Tables */}
-              <Route path="/basic-tables" element={<BasicTables />} />
+                {/* Tables */}
+                <Route path="/basic-tables" element={<BasicTables />} />
 
-              {/* Ui Elements */}
-              <Route path="/alerts" element={<Alerts />} />
-              <Route path="/avatars" element={<Avatars />} />
-              <Route path="/badge" element={<Badges />} />
-              <Route path="/buttons" element={<Buttons />} />
-              <Route path="/images" element={<Images />} />
-              <Route path="/videos" element={<Videos />} />
+                {/* Ui Elements */}
+                <Route path="/alerts" element={<Alerts />} />
+                <Route path="/avatars" element={<Avatars />} />
+                <Route path="/badge" element={<Badges />} />
+                <Route path="/buttons" element={<Buttons />} />
+                <Route path="/images" element={<Images />} />
+                <Route path="/videos" element={<Videos />} />
 
-              {/* Charts */}
-              <Route path="/line-chart" element={<LineChart />} />
-              <Route path="/bar-chart" element={<BarChart />} />
+                {/* Charts */}
+                <Route path="/line-chart" element={<LineChart />} />
+                <Route path="/bar-chart" element={<BarChart />} />
 
-              {/* Brand Kit */}
-              <Route path="/brandkit" element={<BrandkitPage />} />
+                {/* Brand Kit */}
+                <Route path="/brandkit" element={<BrandkitPage />} />
 
-              {/* Admin */}
-              <Route path="/admin/logs" element={<IntegrationLogs />} />
-              <Route path="/admin/billing" element={<BillingManagement />} />
+                {/* Admin */}
+                <Route path="/admin/logs" element={<IntegrationLogs />} />
+                <Route path="/admin/billing" element={<BillingManagement />} />
+
+                {/* Agenda / Sugestao de Pauta */}
+                <Route path="/agenda/sugestao" element={<AgendaSugestao />} />
+
+                {/* Social Networks */}
+                <Route path="/social-networks" element={<SocialNetworksPage />} />
+              </Route>
             </Route>
           </Route>
 
