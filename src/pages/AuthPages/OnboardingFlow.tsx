@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useRef, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "../../hooks/authHook";
 import { useClient } from "../../hooks/useClient";
@@ -197,12 +197,13 @@ function VerificationStep({ clientId, onSuccess }: { clientId: number; onSuccess
     );
 }
 
-// ─── Step 2: Plano ───────────────────────────────────────────────────────────────
+// ─── Step 2: Plano (Automático) ──────────────────────────────────────────────────
 function PlanStep({ clientId, onSuccess }: { clientId: number; onSuccess: () => void }) {
-    const [loading, setLoading] = useState(false);
+    const [loading, setLoading] = useState(true);
     const [error, setError] = useState("");
     const { user } = useAuth();
     const API_KEY = import.meta.env.VITE_MIGGO_API_KEY;
+    const hasStartedRef = useRef(false);
 
     const startTrial = async () => {
         setLoading(true);
@@ -256,11 +257,11 @@ function PlanStep({ clientId, onSuccess }: { clientId: number; onSuccess: () => 
                     onSuccess();
                 } else {
                     setError(data.error || "Erro ao iniciar versão de testes.");
+                    setLoading(false);
                 }
             }
         } catch (err: any) {
             setError(err.message || "Erro de conexão ao iniciar trial.");
-        } finally {
             setLoading(false);
         }
     };
@@ -276,31 +277,36 @@ function PlanStep({ clientId, onSuccess }: { clientId: number; onSuccess: () => 
         onSuccess();
     };
 
+    useEffect(() => {
+        if (!hasStartedRef.current) {
+            hasStartedRef.current = true;
+            startTrial();
+        }
+    }, [clientId]); // eslint-disable-line react-hooks/exhaustive-deps
+
     return (
-        <div className="flex flex-col gap-5">
-            <p className="text-sm text-gray-500 dark:text-gray-400">
-                Inicie sua versão de testes gratuita de 7 dias ou indique que já possui um plano.
-            </p>
-            <div className="rounded-xl border border-dashed border-brand-300 dark:border-brand-700 bg-brand-50 dark:bg-brand-900/10 p-4">
-                <p className="text-xs text-brand-600 dark:text-brand-400 font-semibold uppercase tracking-wide mb-1">🎁 7 Dias Grátis</p>
-                <p className="text-sm text-gray-600 dark:text-gray-300">
-                    Aproveite todos os recursos da Miggo sem custo inicial.
-                </p>
-            </div>
-            {error && <p className="text-sm text-error-500">{error}</p>}
-            <div className="flex flex-col gap-3">
-                <Button onClick={startTrial} disabled={loading} className="w-full">
-                    {loading ? "Iniciando..." : "Ativar Trial Grátis (7 dias)"}
-                </Button>
-                <Button
-                    variant="outline"
-                    disabled={loading}
-                    onClick={forceSkip}
-                    className="w-full"
-                >
-                    Já tenho um plano ativo
-                </Button>
-            </div>
+        <div className="flex flex-col items-center justify-center py-10">
+            {loading && !error && (
+                <>
+                    <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-brand-500 mb-4"></div>
+                    <p className="text-sm font-medium text-gray-700 dark:text-gray-300">
+                        Preparando sua conta...
+                    </p>
+                </>
+            )}
+
+            {error && (
+                <div className="flex flex-col items-center w-full max-w-sm">
+                    <div className="mb-4 text-center">
+                        <span className="text-3xl">⚠️</span>
+                        <p className="text-sm font-medium text-error-600 mt-2">{error}</p>
+                    </div>
+                    <div className="flex flex-col gap-3 w-full">
+                        <Button onClick={startTrial} className="w-full justify-center">Tentar Novamente</Button>
+                        <Button variant="outline" onClick={forceSkip} className="w-full justify-center">Pular Etapa</Button>
+                    </div>
+                </div>
+            )}
         </div>
     );
 }

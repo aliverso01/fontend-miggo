@@ -179,10 +179,11 @@ export default function SocialConnections() {
 
                 let targetUrl = data.connection_url || data.redirect_url;
                 const network = socialNetworks.find(n => n.id === platformId);
+                const isWhatsapp = network?.name.toLowerCase().includes('whatsapp');
 
-                // WhatsApp does not go to getlate.dev or external URL.
-                // The backend handles ManyChat integration and returns the active integration.
-                if (!targetUrl && network?.name.toLowerCase().includes('whatsapp')) {
+                // WhatsApp does not go to getlate.dev or any external URL.
+                // Even if the backend returns a fallback URL, we MUST ignore it for WhatsApp.
+                if (isWhatsapp) {
                     setIntegrations(prev => [...prev, data]);
                     alert("WhatsApp conectado com sucesso!");
                     setLoading(false);
