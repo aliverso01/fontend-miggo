@@ -11,7 +11,7 @@ export default function SocialNetworksPage() {
             />
             <PageBreadcrumb pageTitle="Redes Sociais" />
 
-            <div className="max-w-3xl">
+            <div className="max-w-2xl">
                 <SocialConnections />
             </div>
         </>

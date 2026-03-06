@@ -14,6 +14,7 @@ import { useModal } from "../../hooks/useModal";
 import { Modal } from "../../components/ui/modal";
 import Input from "../../components/form/input/InputField";
 import Label from "../../components/form/Label";
+import Select from "../../components/form/Select";
 import { PencilIcon, TrashBinIcon, PlusIcon, CalenderIcon, VideoIcon } from "../../icons";
 
 interface Client {
@@ -31,6 +32,11 @@ export default function ClientsList() {
     const [clients, setClients] = useState<Client[]>([]);
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState<string | null>(null);
+
+    // Filter states
+    const [search, setSearch] = useState("");
+    const [activeFilter, setActiveFilter] = useState("all");
+    const [stepFilter, setStepFilter] = useState("all");
 
     // Modal states
     const { isOpen: isAddOpen, openModal: openAddModal, closeModal: closeAddModal } = useModal();
@@ -52,7 +58,12 @@ export default function ClientsList() {
     const fetchClients = async () => {
         setLoading(true);
         try {
-            const response = await fetch("/api/v1/client/list/", {
+            const params = new URLSearchParams();
+            if (search) params.append("search", search);
+            if (activeFilter !== "all") params.append("active", activeFilter);
+            if (stepFilter !== "all") params.append("onboarding_step", stepFilter);
+
+            const response = await fetch(`/api/v1/client/list/?${params.toString()}`, {
                 credentials: "include",
                 headers: { Authorization: API_KEY },
             });
@@ -67,8 +78,11 @@ export default function ClientsList() {
     };
 
     useEffect(() => {
-        fetchClients();
-    }, []);
+        const timer = setTimeout(() => {
+            fetchClients();
+        }, 500);
+        return () => clearTimeout(timer);
+    }, [search, activeFilter, stepFilter]);
 
     const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
         setFormData({ ...formData, [e.target.name]: e.target.value });
@@ -185,6 +199,45 @@ export default function ClientsList() {
                     <Button onClick={() => { setFormData({ name: "", phone: "", email: "", password: "", company: "" }); openAddModal(); }} startIcon={<PlusIcon className="size-5" />}>
                         Adicionar Cliente
                     </Button>
+                </div>
+
+                {/* Filters */}
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4 bg-white dark:bg-white/[0.03] p-5 rounded-xl border border-gray-200 dark:border-white/[0.05]">
+                    <div>
+                        <Label>Pesquisar</Label>
+                        <Input
+                            placeholder="Nome, email, empresa..."
+                            value={search}
+                            onChange={(e) => setSearch(e.target.value)}
+                        />
+                    </div>
+                    <div>
+                        <Label>Status</Label>
+                        <Select
+                            options={[
+                                { value: "all", label: "Todos" },
+                                { value: "true", label: "Ativos" },
+                                { value: "false", label: "Inativos" },
+                            ]}
+                            defaultValue={activeFilter}
+                            onChange={setActiveFilter}
+                        />
+                    </div>
+                    <div>
+                        <Label>Etapa de Onboarding</Label>
+                        <Select
+                            options={[
+                                { value: "all", label: "Todas as etapas" },
+                                { value: "0", label: "0 - Não iniciado" },
+                                { value: "1", label: "1 - Conta verificada" },
+                                { value: "2", label: "2 - Plano escolhido" },
+                                { value: "3", label: "3 - Redes sociais conectadas" },
+                                { value: "4", label: "4 - Completo" },
+                            ]}
+                            defaultValue={stepFilter}
+                            onChange={setStepFilter}
+                        />
+                    </div>
                 </div>
 
                 {error && <div className="p-4 mb-4 text-sm text-red-800 rounded-lg bg-red-50 dark:bg-gray-800 dark:text-red-400" role="alert">{error}</div>}

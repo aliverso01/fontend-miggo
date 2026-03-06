@@ -207,6 +207,13 @@ export default function PostCard({ post, formats, clients, medias, postMedias, o
                 <span>{post.post_time.slice(0, 5)}</span>
             </div>
 
+            {/* Correction Description Snippet */}
+            {post.status === 12 && post.correction_description && (
+                <div className="mt-2 text-[11px] text-red-500 italic line-clamp-2 bg-red-50 dark:bg-red-500/5 px-2 py-1 rounded border border-red-100 dark:border-red-800">
+                    "{post.correction_description}"
+                </div>
+            )}
+
             {/* Template Link — shown when post was created from editorial calendar */}
             {post.template_link && (
                 <a

@@ -1,17 +1,9 @@
-import { Navigate, useLocation, Outlet } from "react-router-dom";
+import { useLocation, Outlet } from "react-router-dom";
 import { useAuth } from "../hooks/authHook";
 import { useClient } from "../hooks/useClient";
 import { useSubscription } from "../hooks/useSubscription";
 import { useEffect } from "react";
 
-const PUBLIC_SUBSCRIPTION_ROUTES = [
-    "/plans",
-    "/subscription/checkout",
-    "/subscription/success",
-    "/subscription/cancel",
-    "/profile", // Permitir perfil caso precise ajustar dados para pagamento
-    "/billing"  // Permitir faturamento para que vejam que não tem plano
-];
 
 export default function SubscriptionGuard() {
     const { user, loading: authLoading } = useAuth();
@@ -42,12 +34,12 @@ export default function SubscriptionGuard() {
         return <Outlet />;
     }
 
-    const isPublicRoute = PUBLIC_SUBSCRIPTION_ROUTES.some(route => location.pathname.startsWith(route));
 
-    // Se não tem assinatura ativa/trial e não está em uma rota pública de assinatura, redireciona para planos
-    if (!hasActiveSubscription && !isPublicRoute) {
-        return <Navigate to="/plans" state={{ from: location.pathname }} replace />;
-    }
+    // Se não tem assinatura ativa/trial e não está em uma rota pública de assinatura, permitimos o acesso ao dashboard
+    // mas não forçamos mais o redirecionamento. Deixamos a lógica de UI gerenciar o que o usuário pode ver sem plano.
+    // if (!hasActiveSubscription && !isPublicRoute) {
+    //     return <Navigate to="/plans" state={{ from: location.pathname }} replace />;
+    // }
 
     return <Outlet />;
 }

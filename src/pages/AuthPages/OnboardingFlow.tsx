@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef, useCallback } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "../../hooks/authHook";
 import { useClient } from "../../hooks/useClient";
@@ -197,44 +197,39 @@ function VerificationStep({ clientId, onSuccess }: { clientId: number; onSuccess
     );
 }
 
-// ─── Step 2: Plano (Automático) ──────────────────────────────────────────────────
+// ─── Step 2: Plano ───────────────────────────────────────────────────────────
 function PlanStep({ clientId, onSuccess }: { clientId: number; onSuccess: () => void }) {
     const [loading, setLoading] = useState(true);
+    const [actionLoading, setActionLoading] = useState<number | null>(null);
     const [error, setError] = useState("");
+    const [plans, setPlans] = useState<any[]>([]);
     const { user } = useAuth();
     const API_KEY = import.meta.env.VITE_MIGGO_API_KEY;
-    const hasStartedRef = useRef(false);
 
-    const startTrial = async () => {
-        setLoading(true);
+    useEffect(() => {
+        const fetchPlans = async () => {
+            try {
+                const plansRes = await fetch('/api/v1/subscription/plan/list/', {
+                    credentials: 'include',
+                    headers: { 'Authorization': API_KEY }
+                });
+                const data = await plansRes.json();
+                if (Array.isArray(data)) {
+                    setPlans(data);
+                }
+            } catch (err: any) {
+                setError("Erro ao carregar planos disponíveis.");
+            } finally {
+                setLoading(false);
+            }
+        };
+        fetchPlans();
+    }, [API_KEY]);
+
+    const startTrial = async (planId: number, priceId: number) => {
+        setActionLoading(planId);
         setError("");
         try {
-            // First, get a plan to use its price_id
-            const plansRes = await fetch('/api/v1/subscription/plan/list/', {
-                credentials: 'include',
-                headers: { 'Authorization': API_KEY }
-            });
-            const plans = await plansRes.json();
-
-            if (!plans || plans.length === 0) {
-                // Fallback: se não há planos, só vamos avançar o step para não travar o usuário
-                await fetch(`/api/v1/client/onboarding-step/${clientId}/`, {
-                    method: "PATCH",
-                    credentials: "include",
-                    headers: { "Content-Type": "application/json", Authorization: API_KEY },
-                    body: JSON.stringify({ onboarding_step: 2 }),
-                });
-                onSuccess();
-                return;
-            }
-
-            const defaultPlan = plans[0];
-            const defaultPrice = defaultPlan.price?.[0]?.id;
-
-            if (!defaultPrice) {
-                throw new Error("Preço não configurado no plano.");
-            }
-
             const res = await fetch('/api/v1/subscription/start-trial/', {
                 method: 'POST',
                 credentials: 'include',
@@ -243,7 +238,7 @@ function PlanStep({ clientId, onSuccess }: { clientId: number; onSuccess: () => 
                     'Authorization': API_KEY,
                 },
                 body: JSON.stringify({
-                    plan_price_id: defaultPrice,
+                    plan_price_id: priceId,
                     user_id: user?.id,
                     trial_days: 7,
                 }),
@@ -257,17 +252,17 @@ function PlanStep({ clientId, onSuccess }: { clientId: number; onSuccess: () => 
                     onSuccess();
                 } else {
                     setError(data.error || "Erro ao iniciar versão de testes.");
-                    setLoading(false);
+                    setActionLoading(null);
                 }
             }
         } catch (err: any) {
             setError(err.message || "Erro de conexão ao iniciar trial.");
-            setLoading(false);
+            setActionLoading(null);
         }
     };
 
     const forceSkip = async () => {
-        setLoading(true);
+        setActionLoading(-1);
         await fetch(`/api/v1/client/onboarding-step/${clientId}/`, {
             method: "PATCH",
             credentials: "include",
@@ -277,34 +272,70 @@ function PlanStep({ clientId, onSuccess }: { clientId: number; onSuccess: () => 
         onSuccess();
     };
 
-    useEffect(() => {
-        if (!hasStartedRef.current) {
-            hasStartedRef.current = true;
-            startTrial();
-        }
-    }, [clientId]); // eslint-disable-line react-hooks/exhaustive-deps
+    if (loading) {
+        return (
+            <div className="flex flex-col items-center justify-center py-10">
+                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-brand-500 mb-4"></div>
+                <p className="text-sm font-medium text-gray-700 dark:text-gray-300">
+                    Carregando planos...
+                </p>
+            </div>
+        );
+    }
 
     return (
-        <div className="flex flex-col items-center justify-center py-10">
-            {loading && !error && (
-                <>
-                    <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-brand-500 mb-4"></div>
-                    <p className="text-sm font-medium text-gray-700 dark:text-gray-300">
-                        Preparando sua conta...
-                    </p>
-                </>
-            )}
+        <div className="flex flex-col gap-6">
+            <div className="text-center">
+                <h3 className="text-lg font-semibold text-gray-800 dark:text-white mb-2">
+                    Escolha seu plano
+                </h3>
+                <p className="text-sm text-gray-500 dark:text-gray-400">
+                    Selecione o plano desejado para começar seu teste gratuito de 7 dias com a Miggo.
+                </p>
+            </div>
 
             {error && (
-                <div className="flex flex-col items-center w-full max-w-sm">
-                    <div className="mb-4 text-center">
-                        <span className="text-3xl">⚠️</span>
-                        <p className="text-sm font-medium text-error-600 mt-2">{error}</p>
-                    </div>
-                    <div className="flex flex-col gap-3 w-full">
-                        <Button onClick={startTrial} className="w-full justify-center">Tentar Novamente</Button>
-                        <Button variant="outline" onClick={forceSkip} className="w-full justify-center">Pular Etapa</Button>
-                    </div>
+                <div className="p-3 text-sm text-red-600 bg-red-50 border border-red-200 rounded-lg dark:bg-red-900/10 dark:border-red-900/30">
+                    {error}
+                </div>
+            )}
+
+            <div className="flex flex-col gap-4">
+                {plans.map((plan) => {
+                    const priceId = plan.price?.[0]?.id;
+                    const isProcessing = actionLoading === plan.id;
+                    return (
+                        <div key={plan.id} className="flex flex-col p-5 sm:p-6 border border-gray-200 rounded-2xl dark:border-gray-800 bg-white dark:bg-gray-900 shadow-theme-xs transition-colors hover:border-brand-500/50">
+                            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-4">
+                                <h4 className="text-xl font-bold text-gray-900 dark:text-white">{plan.name}</h4>
+                                <Button
+                                    className="w-full sm:w-auto flex-shrink-0"
+                                    disabled={!priceId || actionLoading !== null}
+                                    onClick={() => priceId && startTrial(plan.id, priceId)}
+                                >
+                                    {isProcessing ? "Iniciando..." : "Começar Teste"}
+                                </Button>
+                            </div>
+
+                            <ul className="space-y-3 flex-1 mt-2">
+                                {plan.features?.map((feat: any) => (
+                                    <li key={feat.id} className="flex items-start text-sm text-gray-600 dark:text-gray-300">
+                                        <svg className="w-5 h-5 mr-3 text-brand-500 flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M5 13l4 4L19 7" />
+                                        </svg>
+                                        <span dangerouslySetInnerHTML={{ __html: feat.feature }} />
+                                    </li>
+                                ))}
+                            </ul>
+                        </div>
+                    );
+                })}
+            </div>
+
+            {plans.length === 0 && (
+                <div className="flex flex-col items-center justify-center p-6 border border-gray-200 border-dashed rounded-xl dark:border-gray-800">
+                    <p className="text-sm text-gray-500 mb-4">Nenhum plano disponível no momento.</p>
+                    <Button variant="outline" onClick={forceSkip} disabled={actionLoading !== null}>Pular Etapa</Button>
                 </div>
             )}
         </div>
@@ -312,14 +343,14 @@ function PlanStep({ clientId, onSuccess }: { clientId: number; onSuccess: () => 
 }
 
 // ─── Step 3: Redes Sociais ───────────────────────────────────────────────────────
-function SocialStep({ onSuccess }: { onSuccess: () => void }) {
+function SocialStep({ clientId, onSuccess }: { clientId: number; onSuccess: () => void }) {
     return (
         <div className="flex flex-col gap-5">
             <p className="text-sm text-gray-500 dark:text-gray-400">
                 Conecte pelo menos uma rede social. Você pode adicionar mais redes depois, nas configurações.
             </p>
             <div className="max-h-80 overflow-y-auto rounded-xl">
-                <SocialConnections />
+                <SocialConnections clientId={clientId} />
             </div>
             <Button onClick={onSuccess} className="w-full">
                 Continuar
@@ -348,6 +379,10 @@ function BrandkitStep({
     const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
         const selected = e.target.files?.[0];
         if (!selected) return;
+        if (selected.size > 10 * 1024 * 1024) {
+            setError("O arquivo deve ter no máximo 10MB.");
+            return;
+        }
         setFile(selected);
         setPreview(URL.createObjectURL(selected));
         setError("");
@@ -358,6 +393,10 @@ function BrandkitStep({
         setDrag(false);
         const dropped = e.dataTransfer.files[0];
         if (!dropped) return;
+        if (dropped.size > 10 * 1024 * 1024) {
+            setError("O arquivo deve ter no máximo 10MB.");
+            return;
+        }
         setFile(dropped);
         setPreview(URL.createObjectURL(dropped));
         setError("");
@@ -453,7 +492,7 @@ function BrandkitStep({
                             <p className="text-sm font-medium text-gray-700 dark:text-gray-300">
                                 Clique ou arraste sua logo aqui
                             </p>
-                            <p className="text-xs text-gray-400 mt-1">PNG, SVG, JPG • Máx. 5MB</p>
+                            <p className="text-xs text-gray-400 mt-1">PNG, SVG, JPG • Máx. 10MB</p>
                         </div>
                     </>
                 )}
@@ -698,8 +737,8 @@ export default function OnboardingFlow() {
                                         onSuccess={handleStepSuccess}
                                     />
                                 )}
-                                {activeStep === 3 && (
-                                    <SocialStep onSuccess={handleStepSuccess} />
+                                {activeStep === 3 && clientId && (
+                                    <SocialStep clientId={clientId} onSuccess={handleStepSuccess} />
                                 )}
                                 {activeStep === 4 && clientId && (
                                     <BrandkitStep

@@ -94,8 +94,8 @@ export default function SubscriptionDashboard({ subscription, plans, isTrialExpi
                         <p className="text-gray-500">Detalhes do seu plano atual e pagamentos.</p>
                     </div>
                     <span className={`mt-4 md:mt-0 px-4 py-1.5 rounded-full text-sm font-semibold tracking-wide ${subscription.status === 'ACTIVE' ? 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400' :
-                            subscription.status === 'TRIAL' ? 'bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400' :
-                                'bg-red-100 text-red-700'
+                        subscription.status === 'TRIAL' ? 'bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400' :
+                            'bg-red-100 text-red-700'
                         }`}>
                         {subscription.trial ? (isTrialExpired ? 'TRIAL EXPIRADO' : 'TRIAL') : subscription.status.toUpperCase()}
                     </span>
@@ -114,7 +114,7 @@ export default function SubscriptionDashboard({ subscription, plans, isTrialExpi
                     </div>
                 )}
 
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
                     <div className="p-4 bg-gray-50 dark:bg-gray-800/50 rounded-xl border border-gray-100 dark:border-gray-800">
                         <p className="text-xs text-gray-500 uppercase font-semibold mb-2">Plano Atual</p>
                         <p className="text-xl font-bold text-gray-900 dark:text-white">
@@ -140,16 +140,6 @@ export default function SubscriptionDashboard({ subscription, plans, isTrialExpi
                         </p>
                     </div>
 
-                    <div className="p-4 bg-gray-50 dark:bg-gray-800/50 rounded-xl border border-gray-100 dark:border-gray-800">
-                        <p className="text-xs text-gray-500 uppercase font-semibold mb-2">Método de Pagamento</p>
-                        <p className="text-lg font-medium text-gray-900 dark:text-white flex items-center gap-2">
-                            <svg className="w-6 h-6 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z" />
-                            </svg>
-                            •••• •••• •••• 4242
-                        </p>
-                        <p className="text-xs text-gray-400 mt-1">Stripe Secure Payment</p>
-                    </div>
                 </div>
 
                 <div className="border-t border-gray-100 dark:border-gray-800 pt-8 flex flex-col sm:flex-row gap-4">

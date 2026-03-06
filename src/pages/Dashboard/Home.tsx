@@ -77,64 +77,63 @@ export default function Home() {
       setLoading(true);
       try {
         // Build Promise array
-        const promises: Promise<Response>[] = [
+        const initialPromises: Promise<Response>[] = [
           fetch("/api/v1/client/list/", { headers: { Authorization: API_KEY } }),
-          // Post List replaced by Report? Home still needs basic list? No, purely stats in Home now.
-          // BUT - is 'posts' used elsewhere? No, only for stats.
-          // fetch("/api/v1/post/list/", { headers: { Authorization: API_KEY } }), 
-          // History with user_id based on role
           user.role === 'client'
             ? fetch(`/api/v1/history/list/?user_id=${user.id}`, { headers: { Authorization: API_KEY } })
-            : fetch("/api/v1/history/list/", { headers: { Authorization: API_KEY } }),
-
-          fetch("/api/v1/editorial-calendar/list/", { headers: { Authorization: API_KEY } })
+            : fetch("/api/v1/history/list/", { headers: { Authorization: API_KEY } })
         ];
 
-        // Add Reports
-        // Client Report (Admin Only)
-        // Post Report (All)
-
-        let clientReportPromise: Promise<Response> | null = null;
-        let postReportPromise: Promise<Response> | null = null;
-
-        if (user.role !== 'client') { // Admin/Staff
-          clientReportPromise = fetch("/api/v1/history/report/clients/", { headers: { Authorization: API_KEY } });
-          postReportPromise = fetch("/api/v1/history/report/posts/", { headers: { Authorization: API_KEY } });
+        // Only fetch full editorial list if NOT a client (for the admin summary)
+        if (user.role !== 'client') {
+          initialPromises.push(fetch("/api/v1/editorial-calendar/list/", { headers: { Authorization: API_KEY } }));
         }
 
-        // We handle Client-specific logic after basic fetches because we need client ID first?
-        // Actually, for "client" role, we need to know their client ID to fetch their post report.
+        const initialResults = await Promise.all(initialPromises);
+        const clientsRes = initialResults[0];
+        const historyRes = initialResults[1];
+        const editorialRes = user.role !== 'client' ? initialResults[2] : null;
 
-        // Execute initial batch
-        const [clientsRes, historyRes, editorialRes] = await Promise.all(promises);
-
-        let allClients: Client[] = [];
         let myClient: Client | undefined;
+        let postReportPromise: Promise<Response> | null = null;
+        let clientReportPromise: Promise<Response> | null = null;
 
         if (clientsRes.ok) {
-          allClients = await clientsRes.json();
-          // We don't set clientCount from this list anymore if we use the report for admins,
-          // but let's keep it sync for now or rely on report.
+          const allClients: Client[] = await clientsRes.json();
           setClients(allClients);
 
           if (user.role === 'client') {
             myClient = allClients.find(c => c.user === user.id);
             if (myClient) {
               setCurrentClientId(myClient.id);
-              // Fetch Post Report for this Client
+              // Fetch client-specific data
               postReportPromise = fetch(`/api/v1/history/report/posts/?client_id=${myClient.id}`, { headers: { Authorization: API_KEY } });
 
-              // Also check active status logic
+              // NEW: Fetch specific editorial calendar for this client
+              const clientEditorialRes = await fetch(`/api/v1/editorial-calendar/list/?client_id=${myClient.id}`, { headers: { Authorization: API_KEY } });
+              if (clientEditorialRes.ok) {
+                const rules = await clientEditorialRes.json();
+                setEditorialRules(rules);
+              }
+
               try {
                 const clientDetailRes = await fetch(`/api/v1/client/retrieve/${myClient.id}/`, { headers: { Authorization: API_KEY } });
                 if (clientDetailRes.ok) {
                   const clientDetail = await clientDetailRes.json();
                   setIsClientActive(clientDetail.active);
-                } else if ('active' in myClient) {
-                  setIsClientActive((myClient as any).active);
                 }
               } catch (e) { console.error(e) }
             }
+          }
+        }
+
+        if (user.role !== 'client') {
+          clientReportPromise = fetch("/api/v1/history/report/clients/", { headers: { Authorization: API_KEY } });
+          postReportPromise = fetch("/api/v1/history/report/posts/", { headers: { Authorization: API_KEY } });
+
+          if (editorialRes && editorialRes.ok) {
+            const rules = await editorialRes.json();
+            setEditorialRules(rules);
           }
         }
 
@@ -240,10 +239,6 @@ export default function Home() {
           setHistory(historyData.slice(0, 5));
         }
 
-        if (editorialRes.ok) {
-          const rules = await editorialRes.json();
-          setEditorialRules(rules);
-        }
 
       } catch (error) {
         console.error("Error fetching dashboard data:", error);
@@ -552,26 +547,43 @@ export default function Home() {
         ) : (
           <>
             {isAdmin ? (
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-                {clients.map(client => {
-                  const activeRules = editorialRules.filter(r => r.client === client.id && r.active).length;
-                  return (
-                    <div key={client.id} className="p-4 rounded-lg border border-gray-100 dark:border-gray-700 hover:shadow-sm transition-all flex flex-col gap-2">
-                      <div className="flex justify-between items-start">
-                        <h4 className="font-semibold text-gray-800 dark:text-white/90">{client.name}</h4>
-                        <span className={`text-xs px-2 py-1 rounded-full ${activeRules > 0 ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-500'}`}>
-                          {activeRules} regras
-                        </span>
-                      </div>
-                      <Link
-                        to={`/editorial-calendar?client_id=${client.id}`}
-                        className="text-sm text-brand-500 hover:text-brand-600 font-medium mt-auto self-start"
-                      >
-                        Ver Calendário &rarr;
-                      </Link>
-                    </div>
-                  );
-                })}
+              <div className="overflow-hidden rounded-xl border border-gray-100 dark:border-white/[0.05]">
+                <div className="max-w-full overflow-x-auto max-h-[400px] overflow-y-auto custom-scrollbar">
+                  <table className="min-w-full divide-y divide-gray-100 dark:divide-white/[0.05]">
+                    <thead className="bg-gray-50 dark:bg-white/[0.02] sticky top-0 z-10">
+                      <tr>
+                        <th className="px-5 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider dark:text-gray-400">Cliente</th>
+                        <th className="px-5 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider dark:text-gray-400">Regras Ativas</th>
+                        <th className="px-5 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider dark:text-gray-400">Ação</th>
+                      </tr>
+                    </thead>
+                    <tbody className="bg-white divide-y divide-gray-100 dark:bg-transparent dark:divide-white/[0.05]">
+                      {clients.map(client => {
+                        const activeRules = editorialRules.filter(r => r.client === client.id && r.active).length;
+                        return (
+                          <tr key={client.id} className="hover:bg-gray-50 dark:hover:bg-white/5 transition-colors">
+                            <td className="px-5 py-4 whitespace-nowrap text-sm font-medium text-gray-800 dark:text-white/90">
+                              {client.name}
+                            </td>
+                            <td className="px-5 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400">
+                              <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${activeRules > 0 ? 'bg-green-100 text-green-800 dark:bg-green-500/10 dark:text-green-400' : 'bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-300'}`}>
+                                {activeRules} regras
+                              </span>
+                            </td>
+                            <td className="px-5 py-4 whitespace-nowrap text-right text-sm font-medium">
+                              <Link
+                                to={`/editorial-calendar?client_id=${client.id}`}
+                                className="text-brand-500 hover:text-brand-600 transition-colors"
+                              >
+                                Ver Calendário
+                              </Link>
+                            </td>
+                          </tr>
+                        );
+                      })}
+                    </tbody>
+                  </table>
+                </div>
               </div>
             ) : (
               <div className="flex flex-col gap-3">
