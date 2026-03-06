@@ -31,6 +31,7 @@ export interface Post {
     editorial_calendar?: number | null;
     template_link?: string;
     template_page?: number | null;
+    correction_description?: string;
 }
 
 export interface Client {
