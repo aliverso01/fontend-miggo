@@ -1,6 +1,5 @@
 import { useState, useEffect } from "react";
 import { Dropdown } from "../ui/dropdown/Dropdown";
-import { DropdownItem } from "../ui/dropdown/DropdownItem";
 import { Link } from "react-router";
 import { useAuthContext } from "../../context/AuthContext";
 
@@ -207,8 +206,8 @@ export default function NotificationDropdown() {
                       closeDropdown();
                     }}
                     className={`flex items-start gap-3 rounded-lg p-3 my-0.5 transition-colors ${notification.is_read
-                        ? 'hover:bg-gray-50 dark:hover:bg-gray-800'
-                        : 'bg-brand-50/50 hover:bg-brand-50 dark:bg-brand-900/10 dark:hover:bg-brand-900/20'
+                      ? 'hover:bg-gray-50 dark:hover:bg-gray-800'
+                      : 'bg-brand-50/50 hover:bg-brand-50 dark:bg-brand-900/10 dark:hover:bg-brand-900/20'
                       }`}
                   >
                     <div className="flex items-center justify-center flex-shrink-0 w-10 h-10 mt-1 text-base rounded-full bg-gray-100 dark:bg-gray-800">
@@ -233,8 +232,8 @@ export default function NotificationDropdown() {
                 ) : (
                   <div
                     className={`flex items-start gap-4 rounded-lg p-3 my-0.5 select-none transition-colors ${notification.is_read
-                        ? 'hover:bg-gray-50 dark:hover:bg-gray-800'
-                        : 'bg-brand-50/50 hover:bg-brand-50 dark:bg-brand-900/10 dark:hover:bg-brand-900/20 cursor-pointer'
+                      ? 'hover:bg-gray-50 dark:hover:bg-gray-800'
+                      : 'bg-brand-50/50 hover:bg-brand-50 dark:bg-brand-900/10 dark:hover:bg-brand-900/20 cursor-pointer'
                       }`}
                     onClick={(e) => {
                       if (!notification.is_read) handleMarkAsRead(notification.id, e);
