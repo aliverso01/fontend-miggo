@@ -19,7 +19,7 @@ export const useAuth = () => {
         }
     };
 
-    const register = async (data: { name: string; email: string; password?: string }) => {
+    const register = async (data: { name: string; email: string; phone: string; password?: string }) => {
         try {
             await contextRegister(data);
             navigate("/");

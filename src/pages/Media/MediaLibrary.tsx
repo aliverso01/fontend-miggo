@@ -15,6 +15,7 @@ interface Media {
     created_at: string;
     updated_at: string;
     user: number;
+    description?: string;
 }
 
 interface Client {
@@ -329,7 +330,7 @@ export default function MediaLibrary() {
                 className="max-w-4xl w-full p-0 overflow-hidden bg-transparent shadow-none"
                 showCloseButton={false}
             >
-                <div className="relative flex justify-center items-center bg-black/90 p-4 rounded-xl">
+                <div className="relative flex flex-col justify-center items-center bg-black/90 p-4 rounded-xl max-h-[95vh]">
                     <button
                         onClick={() => setSelectedMedia(null)}
                         className="absolute right-4 top-4 z-50 p-2 bg-white/10 hover:bg-white/20 rounded-full text-white transition-colors"
@@ -349,11 +350,24 @@ export default function MediaLibrary() {
                         </button>
                     )}
                     {selectedMedia && (
-                        <img
-                            src={selectedMedia.media}
-                            alt="Visualização"
-                            className="max-h-[85vh] max-w-full object-contain rounded-lg"
-                        />
+                        <div className="flex-1 overflow-auto flex items-center justify-center">
+                            <img
+                                src={selectedMedia.media}
+                                alt="Visualização"
+                                className="max-h-[75vh] max-w-full object-contain rounded-lg"
+                            />
+                        </div>
+                    )}
+                    {isAdmin && selectedMedia?.description && (
+                        <div className="w-full mt-4 p-4 bg-gray-900 border border-gray-700 rounded-lg text-gray-300 text-sm overflow-y-auto max-h-40 shrink-0">
+                            <h4 className="font-semibold text-white mb-2 flex items-center gap-2">
+                                <svg className="w-4 h-4 text-brand-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
+                                </svg>
+                                Contexto da Imagem (IA)
+                            </h4>
+                            <p className="whitespace-pre-wrap">{selectedMedia.description}</p>
+                        </div>
                     )}
                 </div>
             </Modal>

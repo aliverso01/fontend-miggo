@@ -24,7 +24,7 @@ interface AuthContextType {
     login: (credentials: { email: string; password?: string }) => Promise<void>;
     logout: () => Promise<void>;
     updateProfile: (data: Partial<User>) => Promise<void>;
-    register: (data: { name: string; email: string; password?: string }) => Promise<void>;
+    register: (data: { name: string; email: string; phone: string; password?: string }) => Promise<void>;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -144,7 +144,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
         }
     };
 
-    const register = async (data: { name: string; email: string; password?: string }) => {
+    const register = async (data: { name: string; email: string; phone: string; password?: string }) => {
         setLoading(true);
         setError(null);
         try {

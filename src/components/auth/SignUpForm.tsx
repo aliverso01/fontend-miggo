@@ -15,6 +15,7 @@ export default function SignUpForm() {
     fname: "",
     lname: "",
     email: "",
+    phone: "",
     password: ""
   });
 
@@ -29,13 +30,14 @@ export default function SignUpForm() {
       return;
     }
     const name = `${formData.fname} ${formData.lname}`.trim();
-    if (!name || !formData.email || !formData.password) {
+    if (!name || !formData.email || !formData.phone || !formData.password) {
       alert("Preencha todos os campos obrigatórios.");
       return;
     }
     await register({
       name,
       email: formData.email,
+      phone: formData.phone,
       password: formData.password
     });
   };
@@ -102,6 +104,20 @@ export default function SignUpForm() {
               name="email"
               placeholder="Digite seu e-mail"
               value={formData.email}
+              onChange={handleInputChange}
+            />
+          </div>
+
+          <div>
+            <Label>
+              Telefone (WhatsApp)<span className="text-error-500">*</span>
+            </Label>
+            <Input
+              type="text"
+              id="phone"
+              name="phone"
+              placeholder="Ex: 11999999999"
+              value={formData.phone}
               onChange={handleInputChange}
             />
           </div>
