@@ -191,8 +191,8 @@ export default function EditPostModal({
 
     return (
         <>
-            <Modal isOpen={isOpen} onClose={onClose} className="max-w-[1000px] m-4">
-                <div className="w-full bg-white rounded-2xl p-6 dark:bg-gray-900 flex flex-col lg:flex-row gap-8">
+            <Modal isOpen={isOpen} onClose={onClose} className="w-full max-w-[1000px] mx-4 sm:mx-auto">
+                <div className="w-full bg-white rounded-2xl p-4 sm:p-6 dark:bg-gray-900 flex flex-col lg:flex-row gap-8 max-h-[90vh] overflow-y-auto">
                     {/* Main Content (Left) */}
                     <div className="flex-1">
                         <div className="flex justify-between items-center mb-6 lg:hidden">
@@ -227,6 +227,15 @@ export default function EditPostModal({
                                     value={formData.subject}
                                     onChange={handleInputChange}
                                     required
+                                    disabled={isClient}
+                                />
+                            </div>
+                            <div>
+                                <Label>Título (Opcional)</Label>
+                                <Input
+                                    name="title"
+                                    value={formData.title || ''}
+                                    onChange={handleInputChange}
                                     disabled={isClient}
                                 />
                             </div>
@@ -352,7 +361,7 @@ export default function EditPostModal({
                                     disabled={isClient}
                                 />
                             </div>
-                            <div className="grid grid-cols-2 gap-4">
+                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                                 <div>
                                     <Label>Data</Label>
                                     <Flatpickr

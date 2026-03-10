@@ -237,7 +237,7 @@ export default function MediaLibrary() {
                         <input
                             ref={fileInputRef}
                             type="file"
-                            accept="image/*"
+                            accept="image/*,video/*,application/pdf"
                             multiple
                             className="hidden"
                             onChange={(e) => handleUpload(e.target.files)}
@@ -327,15 +327,15 @@ export default function MediaLibrary() {
             <Modal
                 isOpen={!!selectedMedia}
                 onClose={() => setSelectedMedia(null)}
-                className="max-w-4xl w-full p-0 overflow-hidden bg-transparent shadow-none"
+                className="max-w-5xl w-full p-0 overflow-hidden bg-transparent shadow-none"
                 showCloseButton={false}
             >
-                <div className="relative flex flex-col justify-center items-center bg-black/90 p-4 rounded-xl max-h-[95vh]">
+                <div className="relative flex flex-col justify-center items-center bg-black/95 p-2 sm:p-6 rounded-3xl max-h-[95vh] w-full">
                     <button
                         onClick={() => setSelectedMedia(null)}
-                        className="absolute right-4 top-4 z-50 p-2 bg-white/10 hover:bg-white/20 rounded-full text-white transition-colors"
+                        className="absolute right-4 top-4 z-50 p-2.5 bg-white/20 hover:bg-white/40 rounded-full text-white transition-all backdrop-blur-md"
                     >
-                        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
                             <line x1="18" y1="6" x2="6" y2="18"></line>
                             <line x1="6" y1="6" x2="18" y2="18"></line>
                         </svg>
@@ -343,30 +343,30 @@ export default function MediaLibrary() {
                     {selectedMedia && (
                         <button
                             onClick={() => handleDelete(selectedMedia.id)}
-                            className="absolute left-4 top-4 z-50 p-2 bg-red-500/80 hover:bg-red-600 rounded-full text-white transition-colors"
+                            className="absolute left-4 top-4 z-50 p-2.5 bg-red-500 hover:bg-red-600 rounded-full text-white transition-all shadow-lg active:scale-90"
                             title="Apagar imagem"
                         >
-                            <TrashBinIcon className="w-6 h-6" />
+                            <TrashBinIcon className="w-5 h-5" />
                         </button>
                     )}
                     {selectedMedia && (
-                        <div className="flex-1 overflow-auto flex items-center justify-center">
+                        <div className="flex-1 w-full overflow-hidden flex items-center justify-center p-2 mt-12 sm:mt-0">
                             <img
                                 src={selectedMedia.media}
                                 alt="Visualização"
-                                className="max-h-[75vh] max-w-full object-contain rounded-lg"
+                                className="max-h-[70vh] w-auto max-w-full object-contain rounded-xl shadow-2xl"
                             />
                         </div>
                     )}
                     {isAdmin && selectedMedia?.description && (
-                        <div className="w-full mt-4 p-4 bg-gray-900 border border-gray-700 rounded-lg text-gray-300 text-sm overflow-y-auto max-h-40 shrink-0">
-                            <h4 className="font-semibold text-white mb-2 flex items-center gap-2">
-                                <svg className="w-4 h-4 text-brand-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <div className="w-full mt-6 p-5 bg-gray-900/80 backdrop-blur-md border border-gray-700/50 rounded-2xl text-gray-300 text-sm overflow-y-auto max-h-40 shrink-0">
+                            <h4 className="font-bold text-white mb-3 flex items-center gap-2 text-base">
+                                <svg className="w-5 h-5 text-brand-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
                                 </svg>
-                                Contexto da Imagem (IA)
+                                Análise com IA
                             </h4>
-                            <p className="whitespace-pre-wrap">{selectedMedia.description}</p>
+                            <p className="whitespace-pre-wrap leading-relaxed">{selectedMedia.description}</p>
                         </div>
                     )}
                 </div>

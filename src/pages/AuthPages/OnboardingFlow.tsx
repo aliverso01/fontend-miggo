@@ -499,7 +499,7 @@ function BrandkitStep({
                 <input
                     id="logo-input"
                     type="file"
-                    accept="image/*"
+                    accept="image/*,video/*,application/pdf"
                     className="hidden"
                     onChange={handleFileChange}
                 />

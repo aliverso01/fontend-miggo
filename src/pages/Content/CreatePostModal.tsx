@@ -53,8 +53,8 @@ export default function CreatePostModal({
     const allowedFormats = formats.filter(f => allowedNetworks.includes(f.platform.toLowerCase()));
 
     return (
-        <Modal isOpen={isOpen} onClose={onClose} className="max-w-[600px] m-4">
-            <div className="w-full bg-white rounded-2xl p-6 dark:bg-gray-900">
+        <Modal isOpen={isOpen} onClose={onClose} className="w-full max-w-[600px]">
+            <div className="w-full bg-white rounded-3xl p-5 sm:p-8 dark:bg-gray-900 max-h-[85vh] overflow-y-auto">
                 <h3 className="text-lg font-semibold text-gray-800 dark:text-white mb-4">Criar Novo Post</h3>
                 <form onSubmit={onSubmit} className="space-y-4">
                     {!isClient && clients && onClientChange && (
@@ -74,6 +74,10 @@ export default function CreatePostModal({
                         <Input name="subject" value={formData.subject} onChange={handleInputChange} required />
                     </div>
                     <div>
+                        <Label>Título (Opcional)</Label>
+                        <Input name="title" value={formData.title || ''} onChange={handleInputChange} />
+                    </div>
+                    <div>
                         <Label>Conteúdo</Label>
                         <textarea
                             name="content"
@@ -84,7 +88,7 @@ export default function CreatePostModal({
                             required
                         />
                     </div>
-                    <div className="grid grid-cols-2 gap-4">
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                         <div>
                             <Label>Data</Label>
                             <Flatpickr

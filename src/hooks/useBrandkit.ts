@@ -48,6 +48,15 @@ export interface BrandAsset {
     created_at: string;
 }
 
+export interface SocialNetworkGrid {
+    id: number;
+    client: number;
+    file: string | null;
+    url: string | null;
+    image_url: string;
+    created_at: string;
+}
+
 export interface Brandkit {
     id: number;
     client: number;
@@ -60,6 +69,7 @@ export interface Brandkit {
     colors: BrandColor[];
     typography: BrandTypography[];
     assets: BrandAsset[];
+    grids: SocialNetworkGrid[];
     created_at: string;
     updated_at: string;
 }
@@ -233,6 +243,39 @@ export const uploadAsset = async (brandkitId: number, file: File, name: string, 
 
 export const deleteAsset = async (id: number) => {
     const res = await fetch(`/api/v1/brandkit/asset/delete/${id}/`, {
+        method: 'DELETE',
+        headers: headers(),
+    });
+    if (!res.ok) throw new Error(`Erro ${res.status}`);
+};
+
+// ── Social Network Grid ───────────────────────────────────────────────────────
+
+export const fetchGrids = async (clientId: number) => {
+    const res = await fetch(`/api/v1/brandkit/grid/list/?client_id=${clientId}`, {
+        headers: headers(),
+    });
+    if (!res.ok) throw new Error(`Erro ${res.status}`);
+    return res.json();
+};
+
+export const createGrid = async (data: { client: number; file?: File; url?: string }) => {
+    const form = new FormData();
+    form.append('client', String(data.client));
+    if (data.file) form.append('file', data.file);
+    if (data.url) form.append('url', data.url);
+
+    const res = await fetch('/api/v1/brandkit/grid/create/', {
+        method: 'POST',
+        headers: { Authorization: API_KEY },
+        body: form,
+    });
+    if (!res.ok) throw new Error(`Erro ${res.status}`);
+    return res.json();
+};
+
+export const deleteGrid = async (id: number) => {
+    const res = await fetch(`/api/v1/brandkit/grid/delete/${id}/`, {
         method: 'DELETE',
         headers: headers(),
     });

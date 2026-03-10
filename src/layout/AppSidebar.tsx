@@ -8,7 +8,8 @@ import {
   GroupIcon,
   ChevronDownIcon,
   DollarLineIcon,
-  CalenderIcon
+  CalenderIcon,
+  ShootingStarIcon
 } from "../icons";
 import { useSidebar } from "../context/SidebarContext";
 import { useAuth } from "../hooks/authHook";
@@ -67,6 +68,7 @@ const AppSidebar: React.FC = () => {
         { icon: <GroupIcon />, name: "Clientes", path: "/clients", adminOnly: true },
         { icon: <ListIcon />, name: "Conteúdos", path: "/content", adminOnly: true },
         { icon: <CalenderIcon />, name: "Biblioteca de Mídias", path: "/media-library", adminOnly: true },
+        { icon: <ShootingStarIcon />, name: "Identidade Visual", path: "/brandkit", adminOnly: true },
       ],
     },
     {
@@ -87,6 +89,7 @@ const AppSidebar: React.FC = () => {
         { icon: <CalenderIcon />, name: "Calendário Editorial", path: "/editorial-calendar", clientOnly: true },
         { icon: <ListIcon />, name: "Sugestão de Pauta", path: "/agenda/sugestao", clientOnly: true },
         { icon: <GridIcon />, name: "Biblioteca de Mídias", path: "/media-library", clientOnly: true },
+        { icon: <ShootingStarIcon />, name: "Identidade Visual", path: "/brandkit", clientOnly: true },
       ],
     },
     {

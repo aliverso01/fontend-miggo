@@ -20,6 +20,7 @@ import { useSearch } from "../../context/SearchContext";
 export interface Post {
     id: number;
     subject: string;
+    title?: string;
     content: string;
     post_date: string;
     post_time: string;
@@ -116,6 +117,7 @@ export default function ContentKanban() {
     // State for create form including optional file
     const [formData, setFormData] = useState({
         subject: "",
+        title: "",
         content: "",
         post_date: "",
         post_time: "",
@@ -134,6 +136,7 @@ export default function ContentKanban() {
     // Edit Form Data (template_link is injected from calendar rule, not from the post)
     const [editFormData, setEditFormData] = useState({
         subject: "",
+        title: "",
         content: "",
         post_date: "",
         post_time: "",
@@ -684,7 +687,7 @@ export default function ContentKanban() {
             await fetchMedias();
             await fetchPostMedias();
             closeModal();
-            setFormData({ subject: "", content: "", post_date: "", post_time: "", status: 2, post_format: "" });
+            setFormData({ subject: "", title: "", content: "", post_date: "", post_time: "", status: 2, post_format: "" });
             setMediaFiles([]); // Reset file input
 
         } catch (err: any) {
@@ -726,6 +729,7 @@ export default function ContentKanban() {
         setCurrentPost(post);
         setEditFormData({
             subject: post.subject,
+            title: post.title || "",
             content: post.content,
             post_date: post.post_date,
             post_time: post.post_time,

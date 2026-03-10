@@ -211,9 +211,12 @@ export default function PostCard({ post, formats, clients, medias, postMedias, o
             ) : null}
 
             {/* Title: Client Name */}
-            <h4 className="mb-3 text-sm font-bold text-gray-800 dark:text-white/90 pr-6 truncate">
+            <h4 className="text-sm font-bold text-gray-800 dark:text-white/90 pr-6 truncate">
                 {clientName}
             </h4>
+            <p className="mb-3 text-[11px] font-medium text-gray-500 dark:text-gray-400 mt-0.5 truncate leading-tight">
+                {post.title || post.subject}
+            </p>
 
             {/* Content: Media (Replaces text description) */}
             <div className="mb-3">
