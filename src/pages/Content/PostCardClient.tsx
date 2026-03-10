@@ -50,8 +50,13 @@ export default function PostCard({ post, formats, clients, medias, postMedias, o
     };
 
     const statusInfo = getStatusLabel(post.status);
-    const formatName = formats?.find(f => f.id === post.post_format)?.name;
-    const platformName = formats?.find(f => f.id === post.post_format)?.platform;
+
+    // Formato escolhido para publicação
+    const chosenFormatObj = post.post_format ? formats?.find(f => f.id === post.post_format) : null;
+    // Formatos sugeridos pelo calendário
+    const suggestedFormatObjs = (post.suggested_formats ?? [])
+        .map(id => formats?.find(f => f.id === id))
+        .filter(Boolean) as Format[];
 
     // Resolve Client Name
     const clientName = clients?.find(c => c.id === post.client)?.name || "Cliente";
@@ -180,15 +185,30 @@ export default function PostCard({ post, formats, clients, medias, postMedias, o
                 </Dropdown>
             </div>
 
-            {/* Format Badge */}
-            {(formatName || platformName) && (
-                <div className="mb-2 flex gap-1 items-center">
-                    <div className="w-1.5 h-1.5 rounded-full bg-brand-500"></div>
-                    <span className="text-[10px] uppercase font-bold text-gray-500 dark:text-gray-400">
-                        {platformName && formatName ? `${platformName} - ${formatName}` : (platformName || formatName)}
+            {/* Format Badge(s) */}
+            {chosenFormatObj ? (
+                <div className="mb-2 flex gap-1 flex-wrap items-center">
+                    <div className="w-1.5 h-1.5 rounded-full bg-brand-500 flex-shrink-0"></div>
+                    <span className="text-[10px] uppercase font-bold text-brand-600 dark:text-brand-400">
+                        {chosenFormatObj.platform} — {chosenFormatObj.name}
                     </span>
+                    {suggestedFormatObjs.filter(f => f.id !== post.post_format).map(f => (
+                        <span key={f.id} className="text-[9px] uppercase font-semibold text-gray-400 bg-gray-100 dark:bg-gray-700 px-1.5 py-0.5 rounded">
+                            {f.name}
+                        </span>
+                    ))}
                 </div>
-            )}
+            ) : suggestedFormatObjs.length > 0 ? (
+                <div className="mb-2">
+                    <div className="flex gap-1 flex-wrap">
+                        {suggestedFormatObjs.map(f => (
+                            <span key={f.id} className="inline-flex items-center text-[9px] uppercase font-bold text-gray-500 dark:text-gray-400 bg-gray-100 dark:bg-gray-700/60 border border-gray-200 dark:border-gray-600 px-1.5 py-0.5 rounded-md">
+                                {f.name}
+                            </span>
+                        ))}
+                    </div>
+                </div>
+            ) : null}
 
             {/* Title: Client Name */}
             <h4 className="mb-3 text-sm font-bold text-gray-800 dark:text-white/90 pr-6 truncate">

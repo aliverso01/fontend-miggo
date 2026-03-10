@@ -152,6 +152,9 @@ export default function SocialConnections({ clientId: clientIdProp }: SocialConn
         if (selectedClient) checkIntegrationStatus();
     }, [selectedClient]);
 
+    const [verifyingWhatsApp, setVerifyingWhatsApp] = useState<number | null>(null);
+    const [verificationCode, setVerificationCode] = useState("");
+
     const checkIntegrationStatus = async () => {
         if (!selectedClient) return;
         try {
@@ -163,9 +166,12 @@ export default function SocialConnections({ clientId: clientIdProp }: SocialConn
                 const data: Integration[] = await response.json();
                 setIntegrations(data);
 
-                // Auto-ativa integrações pendentes
+                // Auto-ativa integrações pendentes (exceto as que estão aguardando código de verificação)
                 data.forEach(async (integration) => {
-                    if (integration.status === "inactive") {
+                    const isWhatsApp = socialNetworks.find(n => n.id === integration.platform)?.name.toLowerCase().includes("whatsapp");
+                    const isPendingVerification = integration.connection_url?.startsWith("pending_code:");
+
+                    if (integration.status === "inactive" && !(isWhatsApp && isPendingVerification)) {
                         await activateIntegration(integration.id);
                     }
                 });
@@ -201,15 +207,49 @@ export default function SocialConnections({ clientId: clientIdProp }: SocialConn
                 headers: { "Content-Type": "application/json", Authorization: API_KEY },
                 body: JSON.stringify({ client: Number(selectedClient), platform: platformId }),
             });
-            if (response.ok) {
+            const data = await response.json().catch(() => ({}));
+
+            if (response.status === 202) {
+                setVerifyingWhatsApp(platformId);
+                alert(data.message || "Insira o código enviado para o seu WhatsApp.");
+            } else if (response.ok) {
                 await checkIntegrationStatus();
                 alert("WhatsApp conectado! As notificações estão habilitadas.");
             } else {
-                const err = await response.json().catch(() => ({}));
-                alert(err.error || "Erro ao conectar o WhatsApp.");
+                alert(data.error || "Erro ao conectar o WhatsApp.");
             }
         } catch {
             alert("Erro ao conectar o WhatsApp.");
+        } finally {
+            setLoading(null);
+        }
+    };
+
+    // ── Verificar Código WhatsApp ─────────────────────────────────────────────
+    const handleVerifyWhatsAppCode = async (platformId: number) => {
+        if (!selectedClient || !verificationCode) return;
+        setLoading(platformId);
+        try {
+            const response = await fetch("/api/v1/post/platform-integration/whatsapp/verify/", {
+                method: "POST",
+                headers: { "Content-Type": "application/json", Authorization: API_KEY },
+                body: JSON.stringify({
+                    client: Number(selectedClient),
+                    platform: platformId,
+                    code: verificationCode
+                }),
+            });
+            const data = await response.json().catch(() => ({}));
+            if (response.ok) {
+                alert("WhatsApp verificado com sucesso!");
+                setVerifyingWhatsApp(null);
+                setVerificationCode("");
+                await checkIntegrationStatus();
+            } else {
+                alert(data.error || "Código inválido.");
+            }
+        } catch {
+            alert("Erro ao verificar código.");
         } finally {
             setLoading(null);
         }
@@ -387,28 +427,56 @@ export default function SocialConnections({ clientId: clientIdProp }: SocialConn
                         const integration = integrations.find(i => i.platform === network.id);
                         const isConnected = integration?.status === "active";
                         const isLoading = loading === network.id;
+                        const isVerifying = verifyingWhatsApp === network.id || integration?.connection_url?.startsWith("pending_code:");
+
                         return (
-                            <div
-                                key={network.id}
-                                className={`flex items-center justify-between p-4 border border-[#25D366]/30 rounded-xl bg-[#25D366]/5 dark:bg-[#25D366]/10 dark:border-[#25D366]/20 transition-opacity ${!selectedClient ? "opacity-50 pointer-events-none" : ""}`}
-                            >
-                                <div className="flex items-center gap-4">
-                                    <WhatsAppIcon />
-                                    <div>
-                                        <h5 className="font-medium text-gray-800 dark:text-white/90">WhatsApp</h5>
-                                        <p className="text-sm text-gray-500 dark:text-gray-400">
-                                            {isConnected ? "✓ Notificações habilitadas" : "Habilite notificações e aprovações via WhatsApp"}
-                                        </p>
+                            <div key={network.id} className="flex flex-col gap-4 p-4 border border-[#25D366]/30 rounded-xl bg-[#25D366]/5 dark:bg-[#25D366]/10 dark:border-[#25D366]/20 transition-opacity">
+                                <div
+                                    className={`flex items-center justify-between ${!selectedClient ? "opacity-50 pointer-events-none" : ""}`}
+                                >
+                                    <div className="flex items-center gap-4">
+                                        <WhatsAppIcon />
+                                        <div>
+                                            <h5 className="font-medium text-gray-800 dark:text-white/90">WhatsApp</h5>
+                                            <p className="text-sm text-gray-500 dark:text-gray-400">
+                                                {isConnected ? "✓ Notificações habilitadas" : isVerifying ? "Aguardando código de verificação..." : "Habilite notificações e aprovações via WhatsApp"}
+                                            </p>
+                                        </div>
                                     </div>
+                                    {isConnected ? (
+                                        <Button size="sm" variant="outline" className="text-red-600 border-red-200 hover:bg-red-50 hover:border-red-300 dark:border-red-900/30 dark:hover:bg-red-900/20" onClick={() => handleDisconnect(integration?.id)} disabled={isLoading}>
+                                            {isLoading ? "..." : "Desconectar"}
+                                        </Button>
+                                    ) : !isVerifying ? (
+                                        <Button size="sm" className="bg-[#25D366] hover:bg-[#128C5E] border-[#25D366] text-white" onClick={() => handleConnectWhatsApp(network.id)} disabled={isLoading || !selectedClient}>
+                                            {isLoading ? "Conectando..." : "Habilitar Notificações"}
+                                        </Button>
+                                    ) : null}
                                 </div>
-                                {isConnected ? (
-                                    <Button size="sm" variant="outline" className="text-red-600 border-red-200 hover:bg-red-50 hover:border-red-300 dark:border-red-900/30 dark:hover:bg-red-900/20" onClick={() => handleDisconnect(integration?.id)} disabled={isLoading}>
-                                        {isLoading ? "..." : "Desconectar"}
-                                    </Button>
-                                ) : (
-                                    <Button size="sm" className="bg-[#25D366] hover:bg-[#128C5E] border-[#25D366] text-white" onClick={() => handleConnectWhatsApp(network.id)} disabled={isLoading || !selectedClient}>
-                                        {isLoading ? "Conectando..." : "Habilitar Notificações"}
-                                    </Button>
+
+                                {/* Campo de verificação */}
+                                {isVerifying && !isConnected && (
+                                    <div className="flex flex-col gap-3 p-4 bg-white/50 dark:bg-black/20 rounded-lg border border-[#25D366]/20">
+                                        <p className="text-xs text-gray-600 dark:text-gray-400">
+                                            Um código de ativação foi enviado para o WhatsApp do cliente. Insira-o abaixo:
+                                        </p>
+                                        <div className="flex gap-2">
+                                            <input
+                                                type="text"
+                                                maxLength={6}
+                                                placeholder="000000"
+                                                className="flex-1 px-3 py-2 text-sm text-center font-mono tracking-widest bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#25D366]"
+                                                value={verificationCode}
+                                                onChange={(e) => setVerificationCode(e.target.value.replace(/\D/g, ""))}
+                                            />
+                                            <Button size="sm" onClick={() => handleVerifyWhatsAppCode(network.id)} disabled={loading === network.id || verificationCode.length < 6}>
+                                                {loading === network.id ? "..." : "Verificar"}
+                                            </Button>
+                                            <Button size="sm" variant="outline" onClick={() => { setVerifyingWhatsApp(null); handleDisconnect(integration?.id); }}>
+                                                Cancelar
+                                            </Button>
+                                        </div>
+                                    </div>
                                 )}
                             </div>
                         );

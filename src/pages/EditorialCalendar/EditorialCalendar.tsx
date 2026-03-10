@@ -254,7 +254,16 @@ export default function EditorialCalendar() {
             <PageMeta title="Calendário Editorial | Miggo" description={`Calendário Editorial - ${clientName}`} />
             <PageBreadcrumb pageTitle={clientName ? `Calendário Editorial - ${clientName}` : "Calendário Editorial"} />
 
-            <div className="flex justify-end mb-6">
+            <div className="flex items-center justify-between mb-6">
+                <div>
+                    <h2 className="text-lg font-semibold text-gray-800 dark:text-white">
+                        {clientName ? `Calendário Editorial — ${clientName}` : "Calendário Editorial"}
+                    </h2>
+                    <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
+                        Configure quais dias da semana terão posts gerados automaticamente e quais formatos são sugeridos.
+                        O formato definitivo é escolhido pelo usuário na hora de publicar.
+                    </p>
+                </div>
                 {isAdmin && (
                     <Button onClick={handleSave} disabled={saving}>
                         {saving ? "Salvando..." : "Salvar Alterações"}
@@ -351,9 +360,19 @@ export default function EditorialCalendar() {
                                         )}
                                     </div>
 
-                                    {/* Formats */}
+                                    {/* Formatos Sugeridos */}
                                     <div>
-                                        <Label>Formatos</Label>
+                                        <div className="flex items-center justify-between mb-1">
+                                            <Label>Formatos Sugeridos</Label>
+                                            {(entry.formats || []).length > 0 && (
+                                                <span className="text-[10px] font-semibold text-brand-500 bg-brand-50 dark:bg-brand-500/10 px-2 py-0.5 rounded-full">
+                                                    {(entry.formats || []).length} selecionado(s)
+                                                </span>
+                                            )}
+                                        </div>
+                                        <p className="text-[11px] text-gray-400 dark:text-gray-500 mb-2">
+                                            O usuário escolherá um destes formatos ao publicar.
+                                        </p>
                                         <div className="space-y-2 max-h-40 overflow-y-auto p-2 border border-gray-100 rounded-lg dark:border-gray-800">
                                             {formats.map(fmt => (
                                                 <div key={fmt.id} className="flex items-center gap-2">
@@ -367,13 +386,21 @@ export default function EditorialCalendar() {
                                                     />
                                                     <label
                                                         htmlFor={`fmt-${day.key}-${fmt.id}`}
-                                                        className="text-sm text-gray-700 dark:text-gray-300 cursor-pointer select-none"
+                                                        className={`text-sm cursor-pointer select-none ${(entry.formats || []).includes(fmt.id)
+                                                                ? "text-brand-700 dark:text-brand-400 font-medium"
+                                                                : "text-gray-500 dark:text-gray-400"
+                                                            }`}
                                                     >
-                                                        {fmt.platform} - {fmt.name}
+                                                        {fmt.platform} — {fmt.name}
                                                     </label>
                                                 </div>
                                             ))}
                                         </div>
+                                        {(entry.formats || []).length === 0 && isAdmin && (
+                                            <p className="text-[11px] text-orange-500 dark:text-orange-400 mt-1.5 flex items-center gap-1">
+                                                <span>⚠️</span> Nenhum formato sugerido. Os posts gerados não terão sugestão de formato.
+                                            </p>
+                                        )}
                                     </div>
                                 </div>
                             )}

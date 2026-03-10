@@ -23,6 +23,9 @@ export default function SignInForm() {
     }
   };
 
+  // Determines banner style based on error type
+  const isInactiveError = error?.toLowerCase().includes("inativa") || error?.toLowerCase().includes("inati");
+
   return (
     <div>
       <div className="mb-4">
@@ -94,9 +97,20 @@ export default function SignInForm() {
               Esqueceu a senha?
             </Link>
           </div>
+
+          {/* Error banner - styled differently based on error type */}
           {error && (
-            <div className="text-sm text-error-500">{error}</div>
+            <div
+              className={`flex items-start gap-3 p-4 rounded-lg text-sm ${isInactiveError
+                  ? "bg-orange-50 border border-orange-200 text-orange-800 dark:bg-orange-950/30 dark:border-orange-800 dark:text-orange-300"
+                  : "bg-error-50 border border-error-200 text-error-700 dark:bg-error-950/30 dark:border-error-800 dark:text-error-400"
+                }`}
+            >
+              <span className="text-base flex-shrink-0">{isInactiveError ? "🔒" : "⚠️"}</span>
+              <span>{error}</span>
+            </div>
           )}
+
           <div>
             <Button className="w-full" size="sm" disabled={loading} type="submit">
               {loading ? "Entrando..." : "Entrar"}

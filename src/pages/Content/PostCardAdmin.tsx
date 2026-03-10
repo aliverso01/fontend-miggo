@@ -50,26 +50,29 @@ export default function PostCard({ post, formats, clients, medias, postMedias, o
     };
 
     const statusInfo = getStatusLabel(post.status);
-    const formatName = formats?.find(f => f.id === post.post_format)?.name;
-    const platformName = formats?.find(f => f.id === post.post_format)?.platform;
+
+    // --- Format resolution ---
+    // Formato escolhido para publicação (pode ser null)
+    const chosenFormatObj = post.post_format ? formats?.find(f => f.id === post.post_format) : null;
+
+    // Formatos sugeridos pelo calendário
+    const suggestedFormatObjs = (post.suggested_formats ?? [])
+        .map(id => formats?.find(f => f.id === id))
+        .filter(Boolean) as Format[];
 
     // Resolve Client Name
     const clientName = clients?.find(c => c.id === post.client)?.name || "Cliente";
 
     // Resolve Media
-    // 1. Check for legacy single media field
-    // 2. Check for linked postMedias (preferred)
     let displayMedia: Media | string | null = null;
     let displayMediaType: 'image' | 'video' | 'pdf' | 'unknown' = 'unknown';
 
     if (postMedias && medias) {
-        // Find FIRST linked media
         const link = postMedias.find(pm => pm.post === post.id);
         if (link) {
             const mediaObj = medias.find(m => m.id === link.media);
             if (mediaObj) {
                 displayMedia = mediaObj;
-                // Determine type
                 const ext = mediaObj.media.split('.').pop()?.toLowerCase();
                 if (['jpg', 'jpeg', 'png', 'gif', 'webp', 'svg'].includes(ext || '')) displayMediaType = 'image';
                 else if (['mp4', 'webm', 'ogg', 'mov'].includes(ext || '')) displayMediaType = 'video';
@@ -78,7 +81,6 @@ export default function PostCard({ post, formats, clients, medias, postMedias, o
         }
     }
 
-    // Fallback to legacy media field if no linked media found
     if (!displayMedia && post.media) {
         displayMedia = post.media;
         const ext = post.media.split('.').pop()?.toLowerCase();
@@ -86,7 +88,6 @@ export default function PostCard({ post, formats, clients, medias, postMedias, o
         else if (['mp4', 'webm', 'ogg', 'mov'].includes(ext || '')) displayMediaType = 'video';
         else if (['pdf'].includes(ext || '')) displayMediaType = 'pdf';
     }
-
 
     const renderMediaContent = () => {
         if (!displayMedia) {
@@ -125,7 +126,7 @@ export default function PostCard({ post, formats, clients, medias, postMedias, o
                         </span>
                     </div>
                 );
-            default: // image
+            default:
                 return (
                     <div className="w-full rounded-lg overflow-hidden bg-gray-100">
                         <img src={url} alt="Media" className="w-full h-auto object-cover" />
@@ -134,6 +135,53 @@ export default function PostCard({ post, formats, clients, medias, postMedias, o
         }
     };
 
+    // ----- Format badge section -----
+    const renderFormatBadge = () => {
+        // Se o post tem formato escolhido (post_format definido)
+        if (chosenFormatObj) {
+            return (
+                <div className="mb-2 flex gap-1 flex-wrap items-center">
+                    <div className="w-1.5 h-1.5 rounded-full bg-brand-500 flex-shrink-0"></div>
+                    <span className="text-[10px] uppercase font-bold text-brand-600 dark:text-brand-400">
+                        {chosenFormatObj.platform} — {chosenFormatObj.name}
+                    </span>
+                    {/* Outros formatos sugeridos não escolhidos */}
+                    {suggestedFormatObjs.filter(f => f.id !== post.post_format).map(f => (
+                        <span
+                            key={f.id}
+                            className="text-[9px] uppercase font-semibold text-gray-400 dark:text-gray-500 bg-gray-100 dark:bg-gray-700 px-1.5 py-0.5 rounded"
+                        >
+                            {f.name}
+                        </span>
+                    ))}
+                </div>
+            );
+        }
+
+        // Post sem formato escolhido, mas com sugestões do calendário
+        if (suggestedFormatObjs.length > 0) {
+            return (
+                <div className="mb-2">
+                    <div className="flex gap-1 flex-wrap">
+                        {suggestedFormatObjs.map(f => (
+                            <span
+                                key={f.id}
+                                className="inline-flex items-center text-[9px] uppercase font-bold text-gray-500 dark:text-gray-400 bg-gray-100 dark:bg-gray-700/60 border border-gray-200 dark:border-gray-600 px-1.5 py-0.5 rounded-md"
+                                title={`${f.platform} — ${f.name}`}
+                            >
+                                {f.name}
+                            </span>
+                        ))}
+                    </div>
+                    <p className="text-[9px] text-orange-500 dark:text-orange-400 font-medium mt-0.5">
+                        ⚡ Escolha o formato ao publicar
+                    </p>
+                </div>
+            );
+        }
+
+        return null;
+    };
 
     return (
         <div
@@ -180,22 +228,15 @@ export default function PostCard({ post, formats, clients, medias, postMedias, o
                 </Dropdown>
             </div>
 
-            {/* Format Badge */}
-            {(formatName || platformName) && (
-                <div className="mb-2 flex gap-1 items-center">
-                    <div className="w-1.5 h-1.5 rounded-full bg-brand-500"></div>
-                    <span className="text-[10px] uppercase font-bold text-gray-500 dark:text-gray-400">
-                        {platformName && formatName ? `${platformName} - ${formatName}` : (platformName || formatName)}
-                    </span>
-                </div>
-            )}
+            {/* Format Badge(s) */}
+            {renderFormatBadge()}
 
             {/* Title: Client Name */}
             <h4 className="mb-3 text-sm font-bold text-gray-800 dark:text-white/90 pr-6 truncate">
                 {clientName}
             </h4>
 
-            {/* Content: Media (Replaces text description) */}
+            {/* Media */}
             <div className="mb-3">
                 {renderMediaContent()}
             </div>
@@ -207,14 +248,14 @@ export default function PostCard({ post, formats, clients, medias, postMedias, o
                 <span>{post.post_time.slice(0, 5)}</span>
             </div>
 
-            {/* Correction Description Snippet */}
+            {/* Correction Description */}
             {post.status === 12 && post.correction_description && (
                 <div className="mt-2 text-[11px] text-red-500 italic line-clamp-2 bg-red-50 dark:bg-red-500/5 px-2 py-1 rounded border border-red-100 dark:border-red-800">
                     "{post.correction_description}"
                 </div>
             )}
 
-            {/* Template Link — shown when post was created from editorial calendar */}
+            {/* Template Link */}
             {post.template_link && (
                 <a
                     href={post.template_link}

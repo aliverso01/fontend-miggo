@@ -2,19 +2,23 @@ import { useNavigate } from "react-router";
 import { useAuthContext } from "../context/AuthContext";
 
 export const useAuth = () => {
-    const { login: contextLogin, logout, user, loading, error, register: contextRegister } = useAuthContext();
+    const {
+        login: contextLogin,
+        logout,
+        user,
+        loading,
+        error,
+        register: contextRegister,
+        requestPasswordReset,
+        confirmPasswordReset,
+    } = useAuthContext();
     const navigate = useNavigate();
 
     const login = async (credentials: { email: string; password?: string }) => {
         try {
             await contextLogin(credentials);
-            // Login successful, context state updated.
-            // Navigate to dashboard.
             navigate("/");
         } catch (err) {
-            // Error is stored in context and available via `error` property.
-            // We can also let the error bubble up if the component wants to handle it specifically,
-            // but usually binding UI to `error` state is enough.
             console.error("Login failed in hook:", err);
         }
     };
@@ -22,11 +26,12 @@ export const useAuth = () => {
     const register = async (data: { name: string; email: string; phone: string; password?: string }) => {
         try {
             await contextRegister(data);
-            navigate("/");
+            // Don't auto-navigate on register since account starts inactive
         } catch (err) {
             console.error("Registration failed in hook:", err);
+            throw err; // Re-throw so SignUpForm can catch and display
         }
     };
 
-    return { login, logout, user, loading, error, register };
+    return { login, logout, user, loading, error, register, requestPasswordReset, confirmPasswordReset };
 };

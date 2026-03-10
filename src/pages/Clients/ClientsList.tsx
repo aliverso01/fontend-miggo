@@ -189,6 +189,21 @@ export default function ClientsList() {
         }
     };
 
+    // Toggle client active/inactive
+    const handleToggleActive = async (client: Client) => {
+        try {
+            const response = await fetch(`/api/v1/client/toggle-active/${client.id}/`, {
+                method: "PATCH",
+                credentials: "include",
+                headers: { Authorization: API_KEY },
+            });
+            if (!response.ok) throw new Error("Falha ao alterar status do cliente.");
+            await fetchClients();
+        } catch (err: any) {
+            alert("Erro: " + err.message);
+        }
+    };
+
     return (
         <>
             <PageMeta title="Clientes | Miggo" description="Lista de clientes" />
@@ -264,7 +279,26 @@ export default function ClientsList() {
                                         </TableCell>
                                         <TableCell className="px-5 py-4 text-gray-500 dark:text-gray-400">{client.email}</TableCell>
                                         <TableCell className="px-5 py-4 text-gray-500 dark:text-gray-400">{client.phone}</TableCell>
-                                        <TableCell className="px-5 py-4 text-gray-500 dark:text-gray-400">{client.active ? "Sim" : "Não"}</TableCell>
+                                        <TableCell className="px-5 py-4 text-gray-500 dark:text-gray-400">
+                                            <div className="flex items-center gap-2">
+                                                <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${client.active
+                                                        ? "bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400"
+                                                        : "bg-gray-100 text-gray-500 dark:bg-gray-800 dark:text-gray-400"
+                                                    }`}>
+                                                    {client.active ? "Ativo" : "Inativo"}
+                                                </span>
+                                                <button
+                                                    onClick={() => handleToggleActive(client)}
+                                                    title={client.active ? "Inativar" : "Ativar"}
+                                                    className={`text-xs px-2.5 py-1 rounded-lg border font-medium transition-colors ${client.active
+                                                            ? "border-orange-300 text-orange-600 hover:bg-orange-50 dark:border-orange-700 dark:text-orange-400 dark:hover:bg-orange-950/30"
+                                                            : "border-green-300 text-green-600 hover:bg-green-50 dark:border-green-700 dark:text-green-400 dark:hover:bg-green-950/30"
+                                                        }`}
+                                                >
+                                                    {client.active ? "Inativar" : "Ativar"}
+                                                </button>
+                                            </div>
+                                        </TableCell>
                                         <TableCell className="px-5 py-4 text-gray-500 dark:text-gray-400">
                                             <div className="flex items-center gap-2">
                                                 <Link to={`/editorial-calendar?client_id=${client.id}`} className="text-gray-500 hover:text-brand-500 dark:text-gray-400 dark:hover:text-brand-400" title="Calendário Editorial">

@@ -29,7 +29,6 @@ export default function KanbanColumn({ date, dayName, posts, formats, clients, m
         }),
     }));
 
-    // Format date to show "dd/MM/yyyy"
     const displayDate = new Date(date + 'T00:00:00').toLocaleDateString('pt-BR');
 
     return (
@@ -67,4 +66,3 @@ export default function KanbanColumn({ date, dayName, posts, formats, clients, m
         </div>
     );
 }
-

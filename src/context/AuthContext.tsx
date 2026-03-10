@@ -1,5 +1,35 @@
 import React, { createContext, useContext, useState, useEffect, ReactNode } from "react";
 
+// Helper: converte respostas de erro do DRF em mensagem legível em português
+const FIELD_LABELS: Record<string, string> = {
+    email: "E-mail",
+    password: "Senha",
+    phone: "Telefone",
+    name: "Nome",
+    non_field_errors: "",
+};
+
+function parseDRFError(errorData: Record<string, any>): string {
+    if (!errorData || typeof errorData !== "object") return "Ocorreu um erro inesperado.";
+
+    // Mensagem direta no campo 'detail' ou 'message'
+    if (typeof errorData.detail === "string") return errorData.detail;
+    if (typeof errorData.message === "string") return errorData.message;
+
+    const messages: string[] = [];
+
+    for (const [field, value] of Object.entries(errorData)) {
+        const label = FIELD_LABELS[field] ?? field;
+        const errors = Array.isArray(value) ? value : [String(value)];
+        for (const err of errors) {
+            const msg = typeof err === "string" ? err : JSON.stringify(err);
+            messages.push(label ? `${label}: ${msg}` : msg);
+        }
+    }
+
+    return messages.length > 0 ? messages.join("\n") : "Erro ao processar a requisição.";
+}
+
 
 interface User {
     id: number;
@@ -25,6 +55,8 @@ interface AuthContextType {
     logout: () => Promise<void>;
     updateProfile: (data: Partial<User>) => Promise<void>;
     register: (data: { name: string; email: string; phone: string; password?: string }) => Promise<void>;
+    requestPasswordReset: (email: string) => Promise<string>;
+    confirmPasswordReset: (email: string, code: string, newPassword: string) => Promise<string>;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -64,25 +96,29 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
                 }
             );
 
-            if (!response.ok) {
-                const errorData = await response.json().catch(() => ({}));
-                // Try to get specific error message
-                const msg = errorData.detail || (errorData.non_field_errors ? errorData.non_field_errors[0] : "Login failed");
-                throw new Error(msg);
-            }
+            const data = await response.json().catch(() => ({}));
 
-            const data = await response.json();
-            console.log("Login success data:", data);
+            if (!response.ok) {
+                // Mensagens específicas por código de status
+                if (response.status === 403) {
+                    throw new Error(data.message || "Sua conta está inativa. Entre em contato com a Miggo.");
+                } else if (response.status === 401) {
+                    throw new Error(data.message || "E-mail ou senha inválidos.");
+                } else {
+                    const msg = data.message || data.detail || (data.non_field_errors ? data.non_field_errors[0] : "Erro ao fazer login. Tente novamente.");
+                    throw new Error(msg);
+                }
+            }
 
             if (data.user) {
                 setUser(data.user);
                 localStorage.setItem("user", JSON.stringify(data.user));
             } else {
-                throw new Error("Invalid response structure");
+                throw new Error("Resposta inválida do servidor.");
             }
 
         } catch (err: any) {
-            const msg = err.message || "An error occurred during login";
+            const msg = err.message || "Ocorreu um erro durante o login.";
             setError(msg);
             console.error("Login error:", err);
             throw err;
@@ -161,15 +197,14 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
                 }
             );
 
+            const responseData = await response.json().catch(() => ({}));
+
             if (!response.ok) {
-                const errorData = await response.json().catch(() => ({}));
-                const msg = errorData.detail || (errorData.error ? String(errorData.error) : "Registration failed");
+                // DRF retorna erros no formato: { "campo": ["mensagem"] } ou { "detail": "..." }
+                const msg = parseDRFError(responseData);
                 throw new Error(msg);
             }
 
-            const responseData = await response.json();
-            // Assuming registration returns token or user similar to login, or just success
-            // If it logs in automatically:
             if (responseData.user) {
                 setUser(responseData.user);
                 localStorage.setItem("user", JSON.stringify(responseData.user));
@@ -177,7 +212,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
             return responseData;
 
         } catch (err: any) {
-            const msg = err.message || "An error occurred during registration";
+            const msg = err.message || "Ocorreu um erro durante o cadastro.";
             setError(msg);
             console.error("Registration error:", err);
             throw err;
@@ -186,8 +221,36 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
         }
     };
 
+    const requestPasswordReset = async (email: string): Promise<string> => {
+        const response = await fetch("/api/v1/account/password-reset/request/", {
+            method: "POST",
+            headers: {
+                "Content-Type": "application/json",
+                Authorization: import.meta.env.VITE_MIGGO_API_KEY,
+            },
+            body: JSON.stringify({ email }),
+        });
+        const data = await response.json().catch(() => ({}));
+        if (!response.ok) throw new Error(data.message || "Erro ao enviar o código.");
+        return data.message || "Código enviado com sucesso.";
+    };
+
+    const confirmPasswordReset = async (email: string, code: string, newPassword: string): Promise<string> => {
+        const response = await fetch("/api/v1/account/password-reset/confirm/", {
+            method: "POST",
+            headers: {
+                "Content-Type": "application/json",
+                Authorization: import.meta.env.VITE_MIGGO_API_KEY,
+            },
+            body: JSON.stringify({ email, code, new_password: newPassword }),
+        });
+        const data = await response.json().catch(() => ({}));
+        if (!response.ok) throw new Error(data.message || "Erro ao redefinir a senha.");
+        return data.message || "Senha redefinida com sucesso.";
+    };
+
     return (
-        <AuthContext.Provider value={{ user, loading, error, login, logout, updateProfile, register }}>
+        <AuthContext.Provider value={{ user, loading, error, login, logout, updateProfile, register, requestPasswordReset, confirmPasswordReset }}>
             {children}
         </AuthContext.Provider>
     );

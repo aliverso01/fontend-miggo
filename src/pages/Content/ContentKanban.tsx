@@ -25,7 +25,8 @@ export interface Post {
     post_time: string;
     media: string | null;
     client: number;
-    post_format?: number;
+    post_format?: number | null;    // formato escolhido para publicação (null até o usuário escolher)
+    suggested_formats?: number[];   // todos os formatos sugeridos pelo calendário
     status?: number;
     calendar_id?: number | null;
     editorial_calendar?: number | null;
@@ -383,43 +384,33 @@ export default function ContentKanban() {
                 const rule = rules.find(r => r.week_day === dayName && r.active);
 
                 if (rule) {
-                    // Iterate over formats in the rule
-                    for (const formatId of rule.formats) {
-                        // Robust existence check
-                        const exists = currentPosts.some(p => {
-                            const sameDate = p.post_date === dateStr || (p.post_date && p.post_date.startsWith(dateStr));
-                            const sameFormat = Number(p.post_format) === Number(formatId);
-                            const sameSubject = p.subject === rule.subject;
+                    // NOVO: cria 1 post por regra (não 1 por formato)
+                    // Verifica se já existe post para esta regra+data
+                    const exists = currentPosts.some(p => {
+                        const sameDate = p.post_date === dateStr || (p.post_date && p.post_date.startsWith(dateStr));
+                        const sameSubject = p.subject === rule.subject;
+                        const sameCalendarId =
+                            (p.calendar_id && Number(p.calendar_id) === Number(rule.id)) ||
+                            (p.editorial_calendar && Number(p.editorial_calendar) === Number(rule.id));
+                        return sameDate && (sameCalendarId || sameSubject);
+                    });
 
-                            // Check by ID if available, otherwise by Subject match
-                            const sameCalendarId = (p.calendar_id && Number(p.calendar_id) === Number(rule.id)) ||
-                                (p.editorial_calendar && Number(p.editorial_calendar) === Number(rule.id));
+                    const alreadyStaged = postsToCreate.some(p =>
+                        p.post_date === dateStr && p.subject === rule.subject
+                    );
 
-                            return sameDate && sameFormat && (sameCalendarId || sameSubject);
+                    if (!exists && !alreadyStaged) {
+                        postsToCreate.push({
+                            client: selectedClient,
+                            subject: rule.subject,
+                            content: "Conteúdo gerado via calendário",
+                            post_date: dateStr,
+                            post_time: rule.time,
+                            status: 1,
+                            post_format: null,              // sem formato definido — usuário escolhe ao publicar
+                            suggested_formats: rule.formats, // todos os formatos sugeridos
+                            calendar_id: rule.id,
                         });
-
-                        if (!exists) {
-                            // Check if we already staged this for creation in this batch check to prevent duplicates within same loop
-                            const alreadyStaged = postsToCreate.some(p =>
-                                p.post_date === dateStr &&
-                                p.post_format === formatId &&
-                                p.subject === rule.subject
-                            );
-
-                            if (!alreadyStaged) {
-                                postsToCreate.push({
-                                    client: selectedClient,
-                                    subject: rule.subject,
-                                    content: "Conteúdo gerado via calendário",
-                                    post_date: dateStr,
-                                    post_time: rule.time,
-                                    status: 1,
-                                    post_format: formatId,
-                                    calendar_id: rule.id,
-                                    // NOTE: template_link is NOT a post field — kept out of payload
-                                });
-                            }
-                        }
                     }
                 }
             }
@@ -801,8 +792,48 @@ export default function ContentKanban() {
     };
 
     const performPublishRequest = async (post: Post, action: "publish" | "schedule" | "cancel") => {
-        // Find PostMediaLink ID
-        const link = postMedias.find(pm => pm.post === post.id);
+        // ── 1. Se o post não tem formato definido mas tem sugestões, pedir para escolher ──
+        let effectivePost = post;
+        if (!post.post_format && (post.suggested_formats ?? []).length > 0 && action !== "cancel") {
+            const suggestedObjs = (post.suggested_formats ?? [])
+                .map(id => formats.find(f => f.id === id))
+                .filter(Boolean) as Format[];
+
+            const options = suggestedObjs.map((f, i) => `${i + 1}. ${f.platform} — ${f.name}`).join("\n");
+            const choice = window.prompt(
+                `Este post tem ${suggestedObjs.length} formato(s) sugerido(s). Escolha qual usar para publicar:\n\n${options}\n\nDigite o número da opção:`,
+                "1"
+            );
+
+            if (!choice) return; // usuário cancelou
+
+            const choiceIdx = parseInt(choice, 10) - 1;
+            if (isNaN(choiceIdx) || choiceIdx < 0 || choiceIdx >= suggestedObjs.length) {
+                alert("Opção inválida.");
+                return;
+            }
+
+            const chosenFormat = suggestedObjs[choiceIdx];
+
+            // Salva o formato escolhido no post via PATCH
+            try {
+                const patchRes = await fetch(`/api/v1/post/update/${post.id}/`, {
+                    method: "PATCH",
+                    headers: { "Content-Type": "application/json", Authorization: API_KEY },
+                    body: JSON.stringify({ post_format: chosenFormat.id }),
+                });
+                if (!patchRes.ok) throw new Error("Falha ao salvar formato.");
+                effectivePost = { ...post, post_format: chosenFormat.id };
+                // Atualiza estado local imediatamente
+                setPosts(prev => prev.map(p => p.id === post.id ? { ...p, post_format: chosenFormat.id } : p));
+            } catch (err: any) {
+                alert("Erro ao definir formato: " + err.message);
+                return;
+            }
+        }
+
+        // ── 2. Verificar se há mídia vinculada ──
+        const link = postMedias.find(pm => pm.post === effectivePost.id);
 
         if (!link) {
             const actionPt = action === 'publish' ? 'publicar' : action === 'schedule' ? 'agendar' : 'cancelar';
@@ -810,28 +841,16 @@ export default function ContentKanban() {
             return;
         }
 
-        const actionPtMap = {
-            publish: "publicar",
-            schedule: "agendar",
-            cancel: "cancelar"
-        };
+        const actionPtMap = { publish: "publicar", schedule: "agendar", cancel: "cancelar" };
         const actionPt = actionPtMap[action];
 
-        const confirmMessage = `Confirmar ${actionPt} este post?`;
-
-        if (!confirm(confirmMessage)) return;
+        if (!confirm(`Confirmar ${actionPt} este post?`)) return;
 
         try {
             const response = await fetch("/api/v1/post/publish/", {
                 method: "POST",
-                headers: {
-                    "Content-Type": "application/json",
-                    Authorization: API_KEY,
-                },
-                body: JSON.stringify({
-                    publish: action,
-                    media_post_id: link.id
-                })
+                headers: { "Content-Type": "application/json", Authorization: API_KEY },
+                body: JSON.stringify({ publish: action, media_post_id: link.id })
             });
 
             if (response.ok) {
@@ -843,7 +862,6 @@ export default function ContentKanban() {
                 let errorMessage = `Falha ao ${actionPt} post.`;
                 try {
                     const errorJson = JSON.parse(errorText);
-                    // Check for nested API errors (e.g. from Late API)
                     if (errorJson.post_publish_response?.error) {
                         errorMessage = typeof errorJson.post_publish_response.error === 'string'
                             ? errorJson.post_publish_response.error
@@ -855,12 +873,9 @@ export default function ContentKanban() {
                     } else if (errorJson.detail) {
                         errorMessage = errorJson.detail;
                     } else {
-                        // Fallback to dumping the whole json if no specific known field
                         errorMessage = JSON.stringify(errorJson);
                     }
                 } catch (e) {
-                    console.error("Error parsing error response:", e);
-                    // If parsing fails, maybe it's just text
                     if (errorText.length < 200) errorMessage = errorText;
                 }
                 console.error(`Failed to ${action}`, errorText);
@@ -871,6 +886,7 @@ export default function ContentKanban() {
             alert("Erro ao conectar com servidor.");
         }
     };
+
 
     const handlePublishPost = async (post: Post) => {
         await performPublishRequest(post, "publish");
