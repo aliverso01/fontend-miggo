@@ -350,7 +350,7 @@ function SocialStep({ clientId, onSuccess }: { clientId: number; onSuccess: () =
                 Conecte pelo menos uma rede social. Você pode adicionar mais redes depois, nas configurações.
             </p>
             <div className="max-h-80 overflow-y-auto rounded-xl">
-                <SocialConnections clientId={clientId} />
+                <SocialConnections clientId={clientId} isOnboarding={true} />
             </div>
             <Button onClick={onSuccess} className="w-full">
                 Continuar
@@ -628,7 +628,19 @@ export default function OnboardingFlow() {
             await refetch();
             navigate("/", { replace: true });
         } else {
-            // Avançar step + refetch em background
+            // Avançar step + persistir no backend para garantir que não volte
+            if (clientId) {
+                fetch(`/api/v1/client/onboarding-step/${clientId}/`, {
+                    method: "PATCH",
+                    credentials: "include",
+                    headers: {
+                        "Content-Type": "application/json",
+                        Authorization: import.meta.env.VITE_MIGGO_API_KEY
+                    },
+                    body: JSON.stringify({ onboarding_step: activeStep }),
+                }).catch(err => console.error("Failed to persist onboarding step", err));
+            }
+
             setActiveStep(nextStep);
             refetch();
         }

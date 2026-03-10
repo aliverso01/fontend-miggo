@@ -31,6 +31,8 @@ interface Integration {
 interface SocialConnectionsProps {
     /** Quando fornecido, usa diretamente esse client_id sem buscar lista de clientes */
     clientId?: number;
+    /** Indica que está sendo usado no fluxo de onboarding */
+    isOnboarding?: boolean;
 }
 
 // ─── Ícones ──────────────────────────────────────────────────────────────────
@@ -75,7 +77,7 @@ function PlatformIcon({ name }: { name: string }) {
 
 // ─── Componente principal ─────────────────────────────────────────────────────
 
-export default function SocialConnections({ clientId: clientIdProp }: SocialConnectionsProps) {
+export default function SocialConnections({ clientId: clientIdProp, isOnboarding }: SocialConnectionsProps) {
     const { user } = useAuthContext();
     const API_KEY = import.meta.env.VITE_MIGGO_API_KEY;
 
@@ -291,9 +293,9 @@ export default function SocialConnections({ clientId: clientIdProp }: SocialConn
     };
 
     // ── Desconectar ───────────────────────────────────────────────────────────
-    const handleDisconnect = async (integrationId: number | undefined) => {
+    const handleDisconnect = async (integrationId: number | undefined, silent = false) => {
         if (!selectedClient || !integrationId) return;
-        if (!confirm("Tem certeza que deseja desconectar esta conta?")) return;
+        if (!silent && !confirm("Tem certeza que deseja desconectar esta conta?")) return;
         setLoading(integrationId);
         try {
             const response = await fetch(`/api/v1/post/platform-integration/delete/${integrationId}/`, {
@@ -457,8 +459,16 @@ export default function SocialConnections({ clientId: clientIdProp }: SocialConn
                                 {/* Campo de verificação */}
                                 {isVerifying && !isConnected && (
                                     <div className="flex flex-col gap-3 p-4 bg-white/50 dark:bg-black/20 rounded-lg border border-[#25D366]/20">
+                                        <div className="flex items-center gap-2 text-[#128C5E] dark:text-[#25D366]">
+                                            <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                                            </svg>
+                                            <span className="text-xs font-semibold">CÓDIGO DE ATIVAÇÃO WHATSAPP</span>
+                                        </div>
                                         <p className="text-xs text-gray-600 dark:text-gray-400">
-                                            Um código de ativação foi enviado para o WhatsApp do cliente. Insira-o abaixo:
+                                            {isOnboarding
+                                                ? "Atenção: Este é o código enviado ao seu WHATSAPP agora, diferente do código enviado por e-mail no Passo 1."
+                                                : "Um código de ativação foi enviado para o WhatsApp do cliente. Insira-o abaixo:"}
                                         </p>
                                         <div className="flex gap-2">
                                             <input
@@ -470,9 +480,9 @@ export default function SocialConnections({ clientId: clientIdProp }: SocialConn
                                                 onChange={(e) => setVerificationCode(e.target.value.replace(/\D/g, ""))}
                                             />
                                             <Button size="sm" onClick={() => handleVerifyWhatsAppCode(network.id)} disabled={loading === network.id || verificationCode.length < 6}>
-                                                {loading === network.id ? "..." : "Verificar"}
+                                                {loading === network.id ? "..." : "Ativar"}
                                             </Button>
-                                            <Button size="sm" variant="outline" onClick={() => { setVerifyingWhatsApp(null); handleDisconnect(integration?.id); }}>
+                                            <Button size="sm" variant="outline" onClick={() => { setVerifyingWhatsApp(null); handleDisconnect(integration?.id, true); }}>
                                                 Cancelar
                                             </Button>
                                         </div>
