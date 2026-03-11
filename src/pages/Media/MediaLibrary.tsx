@@ -42,18 +42,26 @@ export default function MediaLibrary() {
 
     const isAdmin = user?.role === 'admin' || user?.is_superuser || user?.is_staff;
 
-    // Fetch Clients (only if Admin)
+    // Fetch Clients
     useEffect(() => {
-        if (isAdmin) {
-            const fetchClients = async () => {
-                try {
-                    const response = await fetch("/api/v1/client/list/", {
-                        headers: { Authorization: API_KEY },
-                    });
-                    if (response.ok) {
-                        const data = await response.json();
-                        setClients(data);
+        if (!user) return;
 
+        const fetchClients = async () => {
+            try {
+                const response = await fetch("/api/v1/client/list/", {
+                    headers: { Authorization: API_KEY },
+                });
+                if (response.ok) {
+                    let data = await response.json();
+
+                    // Se não for admin, filtra para ver apenas o próprio cliente
+                    if (!isAdmin) {
+                        data = data.filter((c: Client) => c.user === user.id);
+                    }
+
+                    setClients(data);
+
+                    if (isAdmin) {
                         const clientIdParam = searchParams.get('client_id');
                         if (clientIdParam) {
                             const foundClient = data.find((c: Client) => c.id === Number(clientIdParam));
@@ -66,17 +74,15 @@ export default function MediaLibrary() {
                         if (data.length > 0 && !selectedClientUserId) {
                             setSelectedClientUserId(String(data[0].user));
                         }
+                    } else {
+                        setSelectedClientUserId(String(user.id));
                     }
-                } catch (e) {
-                    console.error("Failed to fetch clients", e);
                 }
-            };
-            fetchClients();
-        } else {
-            if (user) {
-                setSelectedClientUserId(String(user.id));
+            } catch (e) {
+                console.error("Failed to fetch clients", e);
             }
-        }
+        };
+        fetchClients();
     }, [isAdmin, user, searchParams]);
 
     // Fetch Media
@@ -146,6 +152,15 @@ export default function MediaLibrary() {
         for (const file of Array.from(files)) {
             const formData = new FormData();
             formData.append("media", file);
+
+            // Tenta anexar o client_id correto e o user (do modelo Client)
+            if (selectedClientUserId) {
+                const selectedClient = clients.find(c => String(c.user) === selectedClientUserId);
+                if (selectedClient) {
+                    formData.append("client", String(selectedClient.id));
+                    formData.append("user", selectedClientUserId); // Adiciona o user explicitamente
+                }
+            }
 
             try {
                 const response = await fetch("/api/v1/media/create/", {
