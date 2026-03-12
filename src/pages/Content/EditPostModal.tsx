@@ -523,7 +523,7 @@ export default function EditPostModal({
                                     <Button
                                         className="w-full bg-green-500 hover:bg-green-600 text-white justify-start"
                                         startIcon={<CheckLineIcon className="w-5 h-5" />}
-                                        onClick={() => onStatusAction(10)} // Force Publish (was 3 - Agendar)
+                                        onClick={() => { if (onPublish) onPublish(); else onStatusAction(10); }} // Force Publish (was 3 - Agendar)
                                         disabled={loading}
                                     >
                                         Aprovar e Publicar
@@ -622,7 +622,7 @@ export default function EditPostModal({
                                         onClick={() => { if (onPublish) onPublish(); else onStatusAction(10); }} // Use onPublish if available
                                         disabled={loading}
                                     >
-                                        Publicar no Instagram
+                                        Publicar
                                     </Button>
 
                                     <Button
