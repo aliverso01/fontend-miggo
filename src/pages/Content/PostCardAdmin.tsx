@@ -33,18 +33,21 @@ export default function PostCard({ post, formats, clients, medias, postMedias, o
 
     const getStatusLabel = (status?: number) => {
         switch (status) {
-            case 1: return { label: "A CRIAR", color: "bg-gray-100 text-gray-600" };
-            case 2: return { label: "RASCUNHO", color: "bg-gray-200 text-gray-800" };
-            case 3: return { label: "AGENDADO", color: "bg-blue-100 text-blue-800" };
-            case 4: return { label: "ENVIADO", color: "bg-indigo-100 text-indigo-800" };
-            case 5: return { label: "PENDENTE", color: "bg-orange-100 text-orange-800" };
-            case 6: return { label: "PAUSADO", color: "bg-yellow-100 text-yellow-800" };
-            case 7: return { label: "FINALIZADO", color: "bg-teal-100 text-teal-800" };
-            case 8: return { label: "APROVADO", color: "bg-cyan-100 text-cyan-800" };
-            case 9: return { label: "ENVIANDO", color: "bg-purple-100 text-purple-800" };
-            case 10: return { label: "PUBLICADO", color: "bg-green-100 text-green-800" };
-            case 11: return { label: "CANCELADO", color: "bg-red-100 text-red-800" };
-            case 12: return { label: "CORREÇÃO", color: "bg-red-100 text-red-800" };
+            case 1: return { label: "RASCUNHO", color: "bg-gray-100 text-gray-600" };
+            case 2: return { label: "AGENDADO", color: "bg-gray-200 text-gray-800" };
+            case 3: return { label: "PUBLICADO", color: "bg-blue-100 text-blue-800" };
+            case 4: return { label: "CANCELADO", color: "bg-indigo-100 text-indigo-800" };
+            case 5: return { label: "A CRIAR", color: "bg-orange-100 text-orange-800" };
+            case 6: return { label: "APROVADO", color: "bg-yellow-100 text-yellow-800" };
+            case 7: return { label: "REJEITADO", color: "bg-teal-100 text-teal-800" };
+            case 8: return { label: "EM REVISÃO", color: "bg-cyan-100 text-cyan-800" };
+            case 9: return { label: "PAUSADO", color: "bg-purple-100 text-purple-800" };
+            case 10: return { label: "AGUARDANDO", color: "bg-green-100 text-green-800" };
+            case 11: return { label: "FINALIZADO", color: "bg-red-100 text-red-800" };
+            case 12: return { label: "ENVIADO", color: "bg-red-100 text-red-800" };
+            case 13: return { label: "ERROR", color: "bg-red-100 text-red-800" };
+            case 14: return { label: "SUBINDO", color: "bg-red-100 text-red-800" };
+            case 15: return { label: "PUBLICANDO", color: "bg-red-100 text-red-800" };
             default: return { label: "DESCONHECIDO", color: "bg-gray-100 text-gray-800" };
         }
     };

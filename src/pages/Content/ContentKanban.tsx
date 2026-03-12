@@ -901,6 +901,39 @@ export default function ContentKanban() {
         await performPublishRequest(post, "publish");
     };
 
+    const handleSendWhatsApp = async () => {
+        if (!currentPost) return;
+        setLoading(true);
+        try {
+            const response = await fetch("/api/v1/post/send-post-whatsapp/", {
+                method: "POST",
+                credentials: "include",
+                headers: {
+                    "Content-Type": "application/json",
+                    "Authorization": API_KEY,
+                    "X-CSRFToken": getCookie("csrftoken") || "",
+                },
+                body: JSON.stringify({
+                    post_id: currentPost.id
+                })
+            });
+
+            if (response.ok) {
+                alert("Enviado para revisão com sucesso!");
+                // Após o envio do WhatsApp, atualizamos o status e fechamos o modal
+                await handleStatusAction(5);
+            } else {
+                const data = await response.json();
+                alert(`Erro ao enviar para WhatsApp: ${data.error || 'Erro desconhecido'}`);
+            }
+        } catch (e) {
+            console.error("Error triggering review notification", e);
+            alert("Erro de conexão ao enviar para WhatsApp.");
+        } finally {
+            setLoading(false);
+        }
+    };
+
     // Helper to get CSRF token
     const getCookie = (name: string) => {
         if (!document.cookie) return null;
@@ -910,45 +943,18 @@ export default function ContentKanban() {
         return null;
     };
 
-    const handleStatusAction = async (status: number) => {
-        // Intercept Schedule (3) action to use the publish endpoint
-        if (status === 3 && currentPost) {
-            await performPublishRequest(currentPost, "schedule");
-            return;
-        }
-
+    const handleStatusAction = async (status: number, description?: string) => {
         // Intercept Cancel (11) action to use the publish endpoint
         if (status === 11 && currentPost) {
             await performPublishRequest(currentPost, "cancel");
             return;
         }
 
-        if (status === 5 && currentPost) {
-            try {
-                const response = await fetch("/api/v1/post/send-post-whatsapp/", {
-                    method: "POST",
-                    credentials: "include", // Required for session/csrf
-                    headers: {
-                        "Content-Type": "application/json",
-                        "Authorization": API_KEY,
-                        "X-CSRFToken": getCookie("csrftoken") || "", // Add CSRF Token
-                    },
-                    body: JSON.stringify({
-                        post_id: currentPost.id
-                    })
-                });
-
-                if (response.ok) {
-                    alert("Enviado para revisão com sucesso!");
-                } else {
-                    console.warn("WhatsApp review notification failed", response.status);
-                }
-            } catch (e) {
-                console.error("Error triggering review notification", e);
-            }
+        const newData: any = { ...editFormData, status };
+        if (description !== undefined) {
+            newData.correction_description = description;
         }
-
-        const newData = { ...editFormData, status };
+        
         setEditFormData(newData);
         await performUpdatePost(newData);
     };
@@ -1136,6 +1142,7 @@ export default function ContentKanban() {
                 onDeleteMediaLink={handleDeleteMediaLink}
                 onStatusAction={handleStatusAction}
                 onPublish={() => currentPost && handlePublishPost(currentPost)}
+                onSendWhatsApp={handleSendWhatsApp}
                 userRole={user?.role}
                 onImportTemplate={(async (page?: number) => {
                     const post = currentPost;

@@ -39,6 +39,7 @@ interface EditPostModalProps {
     clients?: { id: number; name: string }[];
     selectedClient?: string;
     onClientChange?: (clientId: string) => void;
+    onSendWhatsApp?: () => void;
 }
 
 export default function EditPostModal({
@@ -61,6 +62,7 @@ export default function EditPostModal({
     clients = [],
     selectedClient,
     onClientChange,
+    onSendWhatsApp,
 }: EditPostModalProps) {
     const [selectedImage, setSelectedImage] = useState<string | null>(null);
     const [pdfBlobUrl, setPdfBlobUrl] = useState<string | null>(null);
@@ -120,18 +122,21 @@ export default function EditPostModal({
 
     const getStatusLabel = (status: number) => {
         switch (status) {
-            case 1: return { label: "A CRIAR", color: "bg-gray-100 text-gray-600" };
-            case 2: return { label: "RASCUNHO", color: "bg-gray-200 text-gray-800" };
-            case 3: return { label: "AGENDADO", color: "bg-blue-100 text-blue-800" };
-            case 4: return { label: "ENVIADO", color: "bg-indigo-100 text-indigo-800" };
-            case 5: return { label: "PENDENTE", color: "bg-orange-100 text-orange-800" };
-            case 6: return { label: "PAUSADO", color: "bg-yellow-100 text-yellow-800" };
-            case 7: return { label: "FINALIZADO", color: "bg-teal-100 text-teal-800" };
-            case 8: return { label: "APROVADO", color: "bg-cyan-100 text-cyan-800" };
-            case 9: return { label: "ENVIANDO", color: "bg-purple-100 text-purple-800" };
-            case 10: return { label: "PUBLICADO", color: "bg-green-100 text-green-800" };
-            case 11: return { label: "CANCELADO", color: "bg-red-100 text-red-800" };
-            case 12: return { label: "CORREÇÃO", color: "bg-red-100 text-red-800" };
+            case 1: return { label: "RASCUNHO", color: "bg-gray-100 text-gray-600" };
+            case 2: return { label: "AGENDADO", color: "bg-gray-200 text-gray-800" };
+            case 3: return { label: "PUBLICADO", color: "bg-blue-100 text-blue-800" };
+            case 4: return { label: "CANCELADO", color: "bg-indigo-100 text-indigo-800" };
+            case 5: return { label: "A CRIAR", color: "bg-orange-100 text-orange-800" };
+            case 6: return { label: "APROVADO", color: "bg-yellow-100 text-yellow-800" };
+            case 7: return { label: "REJEITADO", color: "bg-teal-100 text-teal-800" };
+            case 8: return { label: "EM REVISÃO", color: "bg-cyan-100 text-cyan-800" };
+            case 9: return { label: "PAUSADO", color: "bg-purple-100 text-purple-800" };
+            case 10: return { label: "AGUARDANDO", color: "bg-green-100 text-green-800" };
+            case 11: return { label: "FINALIZADO", color: "bg-red-100 text-red-800" };
+            case 12: return { label: "ENVIADO", color: "bg-red-100 text-red-800" };
+            case 13: return { label: "ERROR", color: "bg-red-100 text-red-800" };
+            case 14: return { label: "SUBINDO", color: "bg-red-100 text-red-800" };
+            case 15: return { label: "PUBLICANDO", color: "bg-red-100 text-red-800" };
             default: return { label: "DESCONHECIDO", color: "bg-gray-100 text-gray-800" };
         }
     };
@@ -565,7 +570,7 @@ export default function EditPostModal({
                                     <Button
                                         className="w-full bg-[#7ACAC9] hover:bg-[#68b0af] text-white justify-start"
                                         startIcon={<TaskIcon className="w-5 h-5" />}
-                                        onClick={() => onStatusAction(5)} // Pendente (Para Revisão)
+                                        onClick={() => { if (onSendWhatsApp) onSendWhatsApp(); else onStatusAction(5); }} // Pendente (Para Revisão)
                                         disabled={loading}
                                     >
                                         Enviar Para Revisão
@@ -581,33 +586,27 @@ export default function EditPostModal({
                                                 alert('O post precisa ter data e hora definidas para agendar a revisão.');
                                                 return;
                                             }
-                                            // Monta ISO 8601. Se post_time for HH:mm, adiciona :00.
-                                            const timeWithSeconds = formData.post_time.length === 5 ? `${formData.post_time}:00` : formData.post_time;
-                                            const scheduledAt = `${formData.post_date}T${timeWithSeconds}-03:00`;
 
                                             setSchedulingReview(true);
                                             try {
-                                                const res = await fetch('/api/v1/post/schedule-review/', {
-                                                    method: 'POST',
+                                                const res = await fetch(`/api/v1/post/update/${currentPostId}/`, {
+                                                    method: 'PATCH',
                                                     headers: {
                                                         'Content-Type': 'application/json',
                                                         'Authorization': API_KEY,
                                                     },
                                                     body: JSON.stringify({
-                                                        post_id: currentPostId,
-                                                        scheduled_at: scheduledAt,
+                                                        status: 2
                                                     }),
                                                 });
                                                 const data = await res.json();
                                                 if (res.ok) {
-                                                    const [y, m, d] = formData.post_date.split('-');
-                                                    const displayDate = `${d}/${m}/${y}`;
-                                                    alert(`✅ Revisão agendada para ${displayDate} às ${formData.post_time}`);
+                                                    alert(`✅ Post enviado para revisão`);
                                                 } else {
-                                                    alert(`Erro: ${data.error || 'Não foi possível agendar.'}`);
+                                                    alert(`Erro: ${data.error || 'Não foi possível enviar.'}`);
                                                 }
                                             } catch {
-                                                alert('Erro de conexão ao agendar revisão.');
+                                                alert('Erro de conexão ao enviar post.');
                                             } finally {
                                                 setSchedulingReview(false);
                                             }
