@@ -842,9 +842,9 @@ export default function ContentKanban() {
         }
 
         // ── 2. Verificar se há mídia vinculada ──
-        const link = postMedias.find(pm => pm.post === effectivePost.id);
+        const hasMedia = postMedias.some(pm => pm.post === effectivePost.id);
 
-        if (!link) {
+        if (!hasMedia) {
             const actionPt = action === 'publish' ? 'publicar' : action === 'schedule' ? 'agendar' : 'cancelar';
             alert(`Não é possível ${actionPt} post sem mídia vinculada.`);
             return;
@@ -859,7 +859,7 @@ export default function ContentKanban() {
             const response = await fetch("/api/v1/post/publish/", {
                 method: "POST",
                 headers: { "Content-Type": "application/json", Authorization: API_KEY },
-                body: JSON.stringify({ publish: action, media_post_id: link.id })
+                body: JSON.stringify({ publish: action, post_id: effectivePost.id })
             });
 
             if (response.ok) {
