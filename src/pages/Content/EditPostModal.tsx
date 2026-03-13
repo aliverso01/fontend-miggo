@@ -71,6 +71,14 @@ export default function EditPostModal({
 
     const [schedulingReview, setSchedulingReview] = useState(false);
     const [correctionDescription, setCorrectionDescription] = useState("");
+    const [showCorrectionField, setShowCorrectionField] = useState(false);
+
+    useEffect(() => {
+        if (!isOpen) {
+            setShowCorrectionField(false);
+            setCorrectionDescription("");
+        }
+    }, [isOpen]);
 
     const API_KEY = import.meta.env.VITE_MIGGO_API_KEY;
 
@@ -464,24 +472,31 @@ export default function EditPostModal({
                             </div>
 
                             {/* Correction Info for Admin */}
-                            {!isClient && formData.status === 12 && (
-                                <div className="mt-4 p-4 bg-red-50 border border-red-200 rounded-xl dark:bg-red-500/10 dark:border-red-500/30">
-                                    <h5 className="text-sm font-bold text-red-800 dark:text-red-400 mb-1">Ajuste solicitado pelo cliente:</h5>
-                                    <p className="text-sm text-red-700 dark:text-red-300">{formData.correction_description || "Nenhuma descrição fornecida."}</p>
+                            {!isClient && formData.correction_description && (
+                                <div className="mt-4 p-5 bg-amber-50 border-2 border-amber-200 rounded-2xl dark:bg-amber-500/10 dark:border-amber-500/30">
+                                    <div className="flex items-center gap-2 mb-2">
+                                        <div className="w-2 h-2 bg-amber-500 rounded-full animate-pulse" />
+                                        <h5 className="text-sm font-bold text-amber-800 dark:text-amber-400">Ajuste solicitado pelo cliente:</h5>
+                                    </div>
+                                    <p className="text-sm text-amber-700 dark:text-amber-300 italic bg-white/50 dark:bg-black/20 p-3 rounded-lg border border-amber-100 dark:border-amber-500/20">
+                                        "{formData.correction_description}"
+                                    </p>
                                 </div>
                             )}
 
                             {/* Correction Input for Client */}
-                            {isClient && formData.status === 5 && (
-                                <div className="mt-4">
-                                    <Label>Descrição do ajuste solicitado (opcional)</Label>
+                            {isClient && showCorrectionField && (
+                                <div className="mt-4 p-4 bg-gray-50 dark:bg-gray-800/50 rounded-xl border border-gray-200 dark:border-gray-700 animate-in fade-in slide-in-from-top-2">
+                                    <Label>Qual ajuste você deseja solicitar?</Label>
                                     <textarea
-                                        rows={3}
-                                        className="w-full rounded-lg border border-gray-300 bg-transparent px-4 py-2.5 text-sm outline-none focus:border-brand-300 dark:border-gray-700 dark:bg-gray-900 dark:text-white"
-                                        placeholder="Descreva o que precisa ser ajustado..."
+                                        rows={4}
+                                        className="w-full rounded-lg border border-gray-300 bg-white px-4 py-2.5 text-sm outline-none focus:border-brand-300 dark:border-gray-600 dark:bg-gray-900 dark:text-white mt-1 shadow-sm"
+                                        placeholder="Descreva aqui o que precisa ser alterado no texto, nas imagens ou na data/hora..."
                                         value={correctionDescription}
                                         onChange={(e) => setCorrectionDescription(e.target.value)}
+                                        autoFocus
                                     />
+                                    <p className="text-[11px] text-gray-500 mt-2 italic">* Sua solicitação será enviada diretamente para a equipe de criação.</p>
                                 </div>
                             )}
                         </form>
@@ -535,15 +550,22 @@ export default function EditPostModal({
                                     </Button>
 
                                     <Button
-                                        className="w-full bg-red-500 hover:bg-red-600 text-white justify-start"
-                                        startIcon={<CloseIcon className="w-5 h-5" />}
+                                        className={`w-full justify-start transition-all ${showCorrectionField ? 'bg-error-600 hover:bg-error-700' : 'bg-red-500 hover:bg-red-600'} text-white`}
+                                        startIcon={showCorrectionField ? <PaperPlaneIcon className="w-5 h-5" /> : <CloseIcon className="w-5 h-5" />}
                                         onClick={() => {
-                                            // Pass special string 'correction' alongside the ID 12 or use a dedicated handler
-                                            (onStatusAction as any)(12, correctionDescription);
+                                            if (!showCorrectionField) {
+                                                setShowCorrectionField(true);
+                                            } else {
+                                                if (!correctionDescription.trim()) {
+                                                    alert("Por favor, descreva o ajuste necessário antes de enviar.");
+                                                    return;
+                                                }
+                                                (onStatusAction as any)(12, correctionDescription);
+                                            }
                                         }}
                                         disabled={loading}
                                     >
-                                        Solicitar ajuste
+                                        {showCorrectionField ? "Confirmar e Enviar para Ajuste" : "Solicitar ajuste"}
                                     </Button>
                                 </>
                             ) : (

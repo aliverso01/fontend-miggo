@@ -146,6 +146,7 @@ export default function ContentKanban() {
         post_format: "" as number | "",
         template_link: "",  // populated from calendarRules when opening a post from the calendar
         template_page: "" as number | string,
+        correction_description: "",
     });
 
     // Enrich posts with calendar rule data (Memoized for use in effects and render)
@@ -742,6 +743,7 @@ export default function ContentKanban() {
             post_format: post.post_format || "" as any,
             template_link: post.template_link || "",
             template_page: post.template_page || "",
+            correction_description: post.correction_description || "",
         });
         openEditModal();
     };
@@ -1144,6 +1146,14 @@ export default function ContentKanban() {
                 onPublish={() => currentPost && handlePublishPost(currentPost)}
                 onSendWhatsApp={handleSendWhatsApp}
                 userRole={user?.role}
+                clients={clients}
+                selectedClient={String(currentPost?.client || "")}
+                onClientChange={(val) => {
+                    if (currentPost) {
+                        setCurrentPost({ ...currentPost, client: Number(val) });
+                        setEditFormData(prev => ({ ...prev, client: Number(val) }));
+                    }
+                }}
                 onImportTemplate={(async (page?: number) => {
                     const post = currentPost;
                     if (!post) return;
