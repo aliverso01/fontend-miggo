@@ -3,7 +3,7 @@ import { useDrag } from "react-dnd";
 import { MoreDotIcon, PencilIcon, TrashBinIcon, PaperPlaneIcon } from "../../icons";
 import { Dropdown } from "../../components/ui/dropdown/Dropdown";
 import { DropdownItem } from "../../components/ui/dropdown/DropdownItem";
-import { Client, Format, Media, Post, PostMediaLink, PostStatus, translateStatus } from "./ContentKanban";
+import { Client, Format, Media, Post, PostMediaLink, PostStatus } from "./ContentKanban";
 
 interface PostCardProps {
     post: Post;
@@ -34,7 +34,7 @@ export default function PostCard({ post, formats, statuses, clients, medias, pos
 
     const getStatusLabel = (statusId?: number) => {
         const statusObj = statuses?.find(s => s.id === statusId);
-        const labelText = statusObj ? translateStatus(statusObj.name).toUpperCase() : "DESCONHECIDO";
+        const labelText = statusObj ? statusObj.name.toUpperCase() : "DESCONHECIDO";
 
         let color = "bg-gray-100 text-gray-800";
         if (labelText.includes("RASCUNHO") || labelText.includes("CRIAR")) color = "bg-gray-100 text-gray-600";

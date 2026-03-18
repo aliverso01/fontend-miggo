@@ -7,7 +7,7 @@ import { Modal } from "../../components/ui/modal";
 import Input from "../../components/form/input/InputField";
 import Label from "../../components/form/Label";
 import Button from "../../components/ui/button/Button";
-import { Format, Media, PostMediaLink, PostStatus, translateStatus } from "./ContentKanban";
+import { Format, Media, PostMediaLink, PostStatus } from "./ContentKanban";
 import Select from "../../components/form/Select";
 import { useSubscription } from "../../hooks/useSubscription";
 import {
@@ -132,7 +132,7 @@ export default function EditPostModal({
 
     const getStatusLabel = (statusId: number) => {
         const statusObj = statuses?.find(s => s.id === statusId);
-        const labelText = statusObj ? translateStatus(statusObj.name).toUpperCase() : "DESCONHECIDO";
+        const labelText = statusObj ? statusObj.name.toUpperCase() : "DESCONHECIDO";
 
         let color = "bg-gray-100 text-gray-800";
         if (labelText.includes("RASCUNHO") || labelText.includes("CRIAR")) color = "bg-gray-100 text-gray-600";

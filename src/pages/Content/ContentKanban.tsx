@@ -69,27 +69,6 @@ export interface PostStatus {
     color?: string;
 }
 
-export const translateStatus = (name: string): string => {
-    if (!name) return "DESCONHECIDO";
-    const map: Record<string, string> = {
-        'uploading': 'ENVIANDO',
-        'error': 'ERRO',
-        'sent': 'ENVIADO',
-        'finished': 'FINALIZADO',
-        'holding': 'AGUARDANDO',
-        'paused': 'PAUSADO',
-        'in_review': 'EM REVISÃO',
-        'rejected': 'REJEITADO',
-        'approved': 'APROVADO',
-        'pending': 'PENDENTE',
-        'canceled': 'CANCELADO',
-        'published': 'PUBLICADO',
-        'scheduled': 'AGENDADO',
-        'draft': 'RASCUNHO',
-    };
-    return map[name.toLowerCase()] || name.toUpperCase();
-};
-
 export default function ContentKanban() {
     const { user } = useAuthContext();
     const { searchQuery } = useSearch();
@@ -1052,12 +1031,11 @@ export default function ContentKanban() {
                                     { value: "", label: "Todos" },
                                     ...statuses
                                         .filter(s => {
-                                            const translated = translateStatus(s.name).toUpperCase();
                                             // Clientes não veem A CRIAR nem RASCUNHO (geralmente IDs associados a esses nomes)
-                                            if (user?.role === 'client' && (translated.includes('CRIAR') || translated.includes('RASCUNHO'))) return false;
+                                            if (user?.role === 'client' && (s.name.toUpperCase().includes('CRIAR') || s.name.toUpperCase().includes('RASCUNHO'))) return false;
                                             return true;
                                         })
-                                        .map(s => ({ value: String(s.id), label: translateStatus(s.name) }))
+                                        .map(s => ({ value: String(s.id), label: s.name.toUpperCase() }))
                                 ]}
                                 placeholder="Status"
                                 onChange={(val) => setSelectedStatus(val === "" ? "" : Number(val))}
