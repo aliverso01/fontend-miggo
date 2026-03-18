@@ -1,13 +1,12 @@
 import { useDrop } from "react-dnd";
 import PostCard from "./PostCardAdmin";
-import { Client, Format, Media, Post, PostMediaLink, PostStatus } from "./ContentKanban";
+import { Client, Format, Media, Post, PostMediaLink } from "./ContentKanban";
 
 interface KanbanColumnProps {
     date: string;
     dayName: string;
     posts: Post[];
     formats: Format[];
-    statuses: PostStatus[];
     clients: Client[];
     medias: Media[];
     postMedias: PostMediaLink[];
@@ -17,7 +16,7 @@ interface KanbanColumnProps {
     onPublish: (post: Post) => void;
 }
 
-export default function KanbanColumn({ date, dayName, posts, formats, statuses, clients, medias, postMedias, onMovePost, onEdit, onDelete, onPublish }: KanbanColumnProps) {
+export default function KanbanColumn({ date, dayName, posts, formats, clients, medias, postMedias, onMovePost, onEdit, onDelete, onPublish }: KanbanColumnProps) {
     const [{ isOver }, drop] = useDrop(() => ({
         accept: "POST",
         drop: (item: { id: number; date: string }) => {
@@ -55,7 +54,6 @@ export default function KanbanColumn({ date, dayName, posts, formats, statuses, 
                         key={post.id}
                         post={post}
                         formats={formats}
-                        statuses={statuses}
                         clients={clients}
                         medias={medias}
                         postMedias={postMedias}

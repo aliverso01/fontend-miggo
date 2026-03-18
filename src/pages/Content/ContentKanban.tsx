@@ -28,7 +28,7 @@ export interface Post {
     client: number;
     post_format?: number | null;    // formato escolhido para publicação (null até o usuário escolher)
     suggested_formats?: number[];   // todos os formatos sugeridos pelo calendário
-    status?: number;
+    status: string | number;
     calendar_id?: number | null;
     editorial_calendar?: number | null;
     template_link?: string;
@@ -63,11 +63,35 @@ export interface PostMediaLink {
     media: number;
 }
 
-export interface PostStatus {
-    id: number;
-    name: string;
-    color?: string;
-}
+export const FRONTEND_STATUSES = [
+    { value: 'uploading', label: 'SUBINDO', color: 'bg-red-100 text-red-800' },
+    { value: 'error', label: 'ERRO', color: 'bg-red-100 text-red-800' },
+    { value: 'sent', label: 'ENVIADO', color: 'bg-red-100 text-red-800' },
+    { value: 'finished', label: 'FINALIZADO', color: 'bg-red-100 text-red-800' },
+    { value: 'holding', label: 'AGUARDANDO', color: 'bg-green-100 text-green-800' },
+    { value: 'paused', label: 'PAUSADO', color: 'bg-purple-100 text-purple-800' },
+    { value: 'in_review', label: 'EM REVISÃO', color: 'bg-cyan-100 text-cyan-800' },
+    { value: 'rejected', label: 'REJEITADO', color: 'bg-teal-100 text-teal-800' },
+    { value: 'approved', label: 'APROVADO', color: 'bg-yellow-100 text-yellow-800' },
+    { value: 'pending', label: 'PENDENTE', color: 'bg-orange-100 text-orange-800' },
+    { value: 'canceled', label: 'CANCELADO', color: 'bg-indigo-100 text-indigo-800' },
+    { value: 'published', label: 'PUBLICADO', color: 'bg-blue-100 text-blue-800' },
+    { value: 'scheduled', label: 'AGENDADO', color: 'bg-gray-200 text-gray-800' },
+    { value: 'draft', label: 'RASCUNHO', color: 'bg-gray-100 text-gray-600' }
+];
+
+export const getFrontendStatusLabel = (statusValue: string | number | undefined) => {
+    // Fallback for old numbers if any remain
+    if (typeof statusValue === 'number') {
+        const legacy: Record<number, string> = {
+            1: 'draft', 2: 'draft', 3: 'scheduled', 4: 'sent', 5: 'pending', 6: 'paused',
+            7: 'finished', 8: 'approved', 9: 'uploading', 10: 'published', 11: 'canceled', 12: 'error'
+        };
+        statusValue = legacy[statusValue] || String(statusValue);
+    }
+    const found = FRONTEND_STATUSES.find(s => s.value === statusValue);
+    return found ? { label: found.label, color: found.color } : { label: 'DESCONHECIDO', color: 'bg-gray-100 text-gray-800' };
+};
 
 export default function ContentKanban() {
     const { user } = useAuthContext();
@@ -76,7 +100,6 @@ export default function ContentKanban() {
     const [posts, setPosts] = useState<Post[]>([]);
     const [clients, setClients] = useState<Client[]>([]);
     const [formats, setFormats] = useState<Format[]>([]);
-    const [statuses, setStatuses] = useState<PostStatus[]>([]);
     const [calendarRules, setCalendarRules] = useState<any[]>([]);
     const [loading, setLoading] = useState(false);
 
@@ -95,7 +118,7 @@ export default function ContentKanban() {
         return clientParam ? Number(clientParam) : "";
     });
 
-    const [selectedStatus, setSelectedStatus] = useState<number | "">("");
+    const [selectedStatus, setSelectedStatus] = useState<string | "">("");
     const [selectedFormat, setSelectedFormat] = useState<number | "">("");
 
     // Modal
@@ -107,7 +130,7 @@ export default function ContentKanban() {
         content: "",
         post_date: "",
         post_time: "",
-        status: 2, // Default draft
+        status: "draft" as string | number, // Default draft
         post_format: "" as number | "",
     });
     // Client selected inside the create modal (independent from the Kanban filter)
@@ -128,7 +151,7 @@ export default function ContentKanban() {
         content: "",
         post_date: "",
         post_time: "",
-        status: 2,
+        status: "draft" as string | number, // Default draft
         post_format: "" as number | "",
         template_link: "",  // populated from calendarRules when opening a post from the calendar
         template_page: "" as number | string,
@@ -190,20 +213,6 @@ export default function ContentKanban() {
             newDate.setDate(prev.getDate() + 7);
             return newDate;
         });
-    };
-
-    const fetchStatuses = async () => {
-        try {
-            const response = await fetch("/api/v1/post/status/list/", {
-                headers: { Authorization: API_KEY },
-            });
-            if (response.ok) {
-                const data = await response.json();
-                setStatuses(data);
-            }
-        } catch (error) {
-            console.error("Error fetching statuses:", error);
-        }
     };
 
     const fetchFormats = async () => {
@@ -270,7 +279,7 @@ export default function ContentKanban() {
             const post = enrichedPosts.find((p: Post) => p.id === Number(editPostId));
             if (post) {
                 // Add validation for status and format to avoid 0/null issues
-                if (post.status === undefined) post.status = 2; // Default to draft if missing
+                if (post.status === undefined) post.status = 'draft'; // Default to draft if missing
 
                 // Small timeout to ensure hydration/render cycle matches (solves dashboard nav issue)
                 setTimeout(() => {
@@ -320,7 +329,6 @@ export default function ContentKanban() {
         if (user) {
             fetchClients();
             fetchFormats();
-            fetchStatuses();
             fetchMedias();
             fetchPostMedias();
         }
@@ -413,7 +421,7 @@ export default function ContentKanban() {
                             content: "Conteúdo gerado via calendário",
                             post_date: dateStr,
                             post_time: rule.time,
-                            status: 1,
+                            status: 'draft', // Default to draft
                             post_format: null,              // sem formato definido — usuário escolhe ao publicar
                             suggested_formats: rule.formats, // todos os formatos sugeridos
                             calendar_id: rule.id,
@@ -693,7 +701,7 @@ export default function ContentKanban() {
             await fetchMedias();
             await fetchPostMedias();
             closeModal();
-            setFormData({ subject: "", title: "", content: "", post_date: "", post_time: "", status: 2, post_format: "" });
+            setFormData({ subject: "", title: "", content: "", post_date: "", post_time: "", status: "draft", post_format: "" });
             setFormClientId("");
             setMediaFiles([]); // Reset file input
 
@@ -740,7 +748,7 @@ export default function ContentKanban() {
             content: post.content,
             post_date: post.post_date,
             post_time: post.post_time,
-            status: post.status || 2,
+            status: post.status || "draft",
             post_format: post.post_format || "" as any,
             template_link: post.template_link || "",
             template_page: post.template_page || "",
@@ -796,8 +804,8 @@ export default function ContentKanban() {
         // If post is currently Scheduled (1) and user is saving (implied edit),
         // and user didn't explicitly change status to something else,
         // revert to Draft (2).
-        if (currentPost?.status === 1 && Number(data.status) === 1) {
-            data.status = 2;
+        if (currentPost?.status === 'scheduled' && data.status === 'scheduled') {
+            data.status = 'draft';
         }
 
         await performUpdatePost(data);
@@ -928,7 +936,7 @@ export default function ContentKanban() {
             if (response.ok) {
                 alert("Enviado para revisão com sucesso!");
                 // Após o envio do WhatsApp, atualizamos o status e fechamos o modal
-                await handleStatusAction(5);
+                await handleStatusAction('in_review');
             } else {
                 const data = await response.json();
                 alert(`Erro ao enviar para WhatsApp: ${data.error || 'Erro desconhecido'}`);
@@ -950,9 +958,9 @@ export default function ContentKanban() {
         return null;
     };
 
-    const handleStatusAction = async (status: number, description?: string) => {
+    const handleStatusAction = async (status: string | number, description?: string) => {
         // Intercept Cancel (11) action to use the publish endpoint
-        if (status === 11 && currentPost) {
+        if (status === 'canceled' && currentPost) {
             await performPublishRequest(currentPost, "cancel");
             return;
         }
@@ -1029,16 +1037,16 @@ export default function ContentKanban() {
                             <Select
                                 options={[
                                     { value: "", label: "Todos" },
-                                    ...statuses
+                                    ...FRONTEND_STATUSES
                                         .filter(s => {
                                             // Clientes não veem A CRIAR nem RASCUNHO (geralmente IDs associados a esses nomes)
-                                            if (user?.role === 'client' && (s.name.toUpperCase().includes('CRIAR') || s.name.toUpperCase().includes('RASCUNHO'))) return false;
+                                            if (user?.role === 'client' && (s.value === 'draft')) return false;
                                             return true;
                                         })
-                                        .map(s => ({ value: String(s.id), label: s.name.toUpperCase() }))
+                                        .map(s => ({ value: s.value, label: s.label }))
                                 ]}
                                 placeholder="Status"
-                                onChange={(val) => setSelectedStatus(val === "" ? "" : Number(val))}
+                                onChange={(val) => setSelectedStatus(val === "" ? "" : val)}
                                 defaultValue={String(selectedStatus)}
                                 className="mt-1"
                             />
@@ -1089,12 +1097,15 @@ export default function ContentKanban() {
                             dayName={dayNames[index]}
                             posts={enrichedPosts.filter((p: Post) => {
                                 // Clientes não veem posts 'A CRIAR' (1) nem 'RASCUNHO' (2)
-                                if (user?.role === 'client' && (p.status === 1 || p.status === 2)) return false;
+                                if (user?.role === 'client' && (p.status === 'draft')) return false;
 
                                 const matchDate = p.post_date === date;
-                                const matchClient = selectedClient ? p.client === selectedClient : true;
-                                const matchStatus = selectedStatus ? p.status === selectedStatus : true;
-                                const matchFormat = selectedFormat ? p.post_format === selectedFormat : true;
+                                const matchClient = selectedClient === "" || p.client === selectedClient;
+                                
+                                // Let's coerce status to string safely to check
+                                const matchStatus = selectedStatus === "" || String(p.status) === String(selectedStatus);
+                                
+                                const matchFormat = selectedFormat === "" || p.post_format === selectedFormat;
 
                                 const query = searchQuery.toLowerCase();
                                 const clientName = clients.find(c => c.id === p.client)?.name.toLowerCase() || "";
@@ -1104,7 +1115,6 @@ export default function ContentKanban() {
                                 return matchDate && matchClient && matchStatus && matchFormat && matchSearch;
                             })}
                             formats={formats} // Pass formats
-                            statuses={statuses}
                             clients={clients}
                             medias={medias}
                             postMedias={postMedias}
@@ -1143,7 +1153,6 @@ export default function ContentKanban() {
                 handleInputChange={handleEditInputChange}
                 loading={loading}
                 formats={formats}
-                statuses={statuses}
                 medias={medias}
                 postMedias={postMedias}
                 onUploadMedia={handleUploadMedia}

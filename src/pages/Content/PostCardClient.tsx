@@ -3,12 +3,11 @@ import { useDrag } from "react-dnd";
 import { MoreDotIcon, PencilIcon, TrashBinIcon, PaperPlaneIcon } from "../../icons";
 import { Dropdown } from "../../components/ui/dropdown/Dropdown";
 import { DropdownItem } from "../../components/ui/dropdown/DropdownItem";
-import { Client, Format, Media, Post, PostMediaLink, PostStatus } from "./ContentKanban";
+import { Client, Format, Media, Post, PostMediaLink, getFrontendStatusLabel } from "./ContentKanban";
 
 interface PostCardProps {
     post: Post;
     formats?: Format[];
-    statuses?: PostStatus[];
     clients?: Client[];
     medias?: Media[];
     postMedias?: PostMediaLink[];
@@ -18,7 +17,7 @@ interface PostCardProps {
     onPublish?: (post: Post) => void;
 }
 
-export default function PostCard({ post, formats, statuses, clients, medias, postMedias, onEdit, onDelete, onPublish }: PostCardProps) {
+export default function PostCard({ post, formats, clients, medias, postMedias, onEdit, onDelete, onPublish }: PostCardProps) {
     const ref = useRef<HTMLDivElement>(null);
     const [isDropdownOpen, setIsDropdownOpen] = useState(false);
 
@@ -32,26 +31,7 @@ export default function PostCard({ post, formats, statuses, clients, medias, pos
 
     drag(ref);
 
-    const getStatusLabel = (statusId?: number) => {
-        const statusObj = statuses?.find(s => s.id === statusId);
-        const labelText = statusObj ? statusObj.name.toUpperCase() : "DESCONHECIDO";
-
-        let color = "bg-gray-100 text-gray-800";
-        if (labelText.includes("RASCUNHO") || labelText.includes("CRIAR")) color = "bg-gray-100 text-gray-600";
-        else if (labelText.includes("AGENDADO")) color = "bg-gray-200 text-gray-800";
-        else if (labelText.includes("PUBLICADO")) color = "bg-blue-100 text-blue-800";
-        else if (labelText.includes("CANCELADO")) color = "bg-indigo-100 text-indigo-800";
-        else if (labelText.includes("APROVADO")) color = "bg-yellow-100 text-yellow-800";
-        else if (labelText.includes("REVISÃO")) color = "bg-cyan-100 text-cyan-800";
-        else if (labelText.includes("PAUSADO")) color = "bg-purple-100 text-purple-800";
-        else if (labelText.includes("AGUARDANDO")) color = "bg-green-100 text-green-800";
-        else if (labelText.includes("FINALIZADO") || labelText.includes("ENVIADO") || labelText.includes("ERROR") || labelText.includes("SUBINDO") || labelText.includes("PUBLICANDO") || labelText.includes("CORREÇÃO")) color = "bg-red-100 text-red-800";
-        else if (labelText.includes("REJEITADO")) color = "bg-teal-100 text-teal-800";
-
-        return { label: labelText, color };
-    };
-
-    const statusInfo = getStatusLabel(post.status);
+    const statusInfo = getFrontendStatusLabel(post.status);
 
     // Formato escolhido para publicação
     const chosenFormatObj = post.post_format ? formats?.find(f => f.id === post.post_format) : null;

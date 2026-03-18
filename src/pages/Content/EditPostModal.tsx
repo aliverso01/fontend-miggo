@@ -7,7 +7,7 @@ import { Modal } from "../../components/ui/modal";
 import Input from "../../components/form/input/InputField";
 import Label from "../../components/form/Label";
 import Button from "../../components/ui/button/Button";
-import { Format, Media, PostMediaLink, PostStatus } from "./ContentKanban";
+import { Format, Media, PostMediaLink, getFrontendStatusLabel } from "./ContentKanban";
 import Select from "../../components/form/Select";
 import { useSubscription } from "../../hooks/useSubscription";
 import {
@@ -27,7 +27,6 @@ interface EditPostModalProps {
     handleInputChange: (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) => void;
     loading: boolean;
     formats: Format[];
-    statuses?: PostStatus[];
     medias: Media[];
     postMedias: PostMediaLink[];
     currentPostId?: number;
@@ -51,7 +50,6 @@ export default function EditPostModal({
     handleInputChange,
     loading,
     formats,
-    statuses,
     medias,
     postMedias,
     currentPostId,
@@ -130,26 +128,7 @@ export default function EditPostModal({
             .filter(Boolean) as (Media & { linkId: number })[]
         : [];
 
-    const getStatusLabel = (statusId: number) => {
-        const statusObj = statuses?.find(s => s.id === statusId);
-        const labelText = statusObj ? statusObj.name.toUpperCase() : "DESCONHECIDO";
-
-        let color = "bg-gray-100 text-gray-800";
-        if (labelText.includes("RASCUNHO") || labelText.includes("CRIAR")) color = "bg-gray-100 text-gray-600";
-        else if (labelText.includes("AGENDADO")) color = "bg-gray-200 text-gray-800";
-        else if (labelText.includes("PUBLICADO")) color = "bg-blue-100 text-blue-800";
-        else if (labelText.includes("CANCELADO")) color = "bg-indigo-100 text-indigo-800";
-        else if (labelText.includes("APROVADO")) color = "bg-yellow-100 text-yellow-800";
-        else if (labelText.includes("REVISÃO")) color = "bg-cyan-100 text-cyan-800";
-        else if (labelText.includes("PAUSADO")) color = "bg-purple-100 text-purple-800";
-        else if (labelText.includes("AGUARDANDO")) color = "bg-green-100 text-green-800";
-        else if (labelText.includes("FINALIZADO") || labelText.includes("ENVIADO") || labelText.includes("ERROR") || labelText.includes("SUBINDO") || labelText.includes("PUBLICANDO") || labelText.includes("CORREÇÃO")) color = "bg-red-100 text-red-800";
-        else if (labelText.includes("REJEITADO")) color = "bg-teal-100 text-teal-800";
-
-        return { label: labelText, color };
-    };
-
-    const statusInfo = getStatusLabel(formData.status);
+    const statusInfo = getFrontendStatusLabel(formData.status);
 
     // Helper to determine media type
     const getMediaType = (url: string) => {
