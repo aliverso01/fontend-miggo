@@ -3,11 +3,12 @@ import { useDrag } from "react-dnd";
 import { MoreDotIcon, PencilIcon, TrashBinIcon, PaperPlaneIcon } from "../../icons";
 import { Dropdown } from "../../components/ui/dropdown/Dropdown";
 import { DropdownItem } from "../../components/ui/dropdown/DropdownItem";
-import { Client, Format, Media, Post, PostMediaLink } from "./ContentKanban";
+import { Client, Format, Media, Post, PostMediaLink, PostStatus, translateStatus } from "./ContentKanban";
 
 interface PostCardProps {
     post: Post;
     formats?: Format[];
+    statuses?: PostStatus[];
     clients?: Client[];
     medias?: Media[];
     postMedias?: PostMediaLink[];
@@ -17,7 +18,7 @@ interface PostCardProps {
     onPublish?: (post: Post) => void;
 }
 
-export default function PostCard({ post, formats, clients, medias, postMedias, onEdit, onDelete, onPublish }: PostCardProps) {
+export default function PostCard({ post, formats, statuses, clients, medias, postMedias, onEdit, onDelete, onPublish }: PostCardProps) {
     const ref = useRef<HTMLDivElement>(null);
     const [isDropdownOpen, setIsDropdownOpen] = useState(false);
 
@@ -31,25 +32,23 @@ export default function PostCard({ post, formats, clients, medias, postMedias, o
 
     drag(ref);
 
-    const getStatusLabel = (status?: number) => {
-        switch (status) {
-            case 1: return { label: "RASCUNHO", color: "bg-gray-100 text-gray-600" };
-            case 2: return { label: "AGENDADO", color: "bg-gray-200 text-gray-800" };
-            case 3: return { label: "PUBLICADO", color: "bg-blue-100 text-blue-800" };
-            case 4: return { label: "CANCELADO", color: "bg-indigo-100 text-indigo-800" };
-            case 5: return { label: "A CRIAR", color: "bg-orange-100 text-orange-800" };
-            case 6: return { label: "APROVADO", color: "bg-yellow-100 text-yellow-800" };
-            case 7: return { label: "REJEITADO", color: "bg-teal-100 text-teal-800" };
-            case 8: return { label: "EM REVISÃO", color: "bg-cyan-100 text-cyan-800" };
-            case 9: return { label: "PAUSADO", color: "bg-purple-100 text-purple-800" };
-            case 10: return { label: "AGUARDANDO", color: "bg-green-100 text-green-800" };
-            case 11: return { label: "FINALIZADO", color: "bg-red-100 text-red-800" };
-            case 12: return { label: "ENVIADO", color: "bg-red-100 text-red-800" };
-            case 13: return { label: "ERROR", color: "bg-red-100 text-red-800" };
-            case 14: return { label: "SUBINDO", color: "bg-red-100 text-red-800" };
-            case 15: return { label: "PUBLICANDO", color: "bg-red-100 text-red-800" };
-            default: return { label: "DESCONHECIDO", color: "bg-gray-100 text-gray-800" };
-        }
+    const getStatusLabel = (statusId?: number) => {
+        const statusObj = statuses?.find(s => s.id === statusId);
+        const labelText = statusObj ? translateStatus(statusObj.name).toUpperCase() : "DESCONHECIDO";
+
+        let color = "bg-gray-100 text-gray-800";
+        if (labelText.includes("RASCUNHO") || labelText.includes("CRIAR")) color = "bg-gray-100 text-gray-600";
+        else if (labelText.includes("AGENDADO")) color = "bg-gray-200 text-gray-800";
+        else if (labelText.includes("PUBLICADO")) color = "bg-blue-100 text-blue-800";
+        else if (labelText.includes("CANCELADO")) color = "bg-indigo-100 text-indigo-800";
+        else if (labelText.includes("APROVADO")) color = "bg-yellow-100 text-yellow-800";
+        else if (labelText.includes("REVISÃO")) color = "bg-cyan-100 text-cyan-800";
+        else if (labelText.includes("PAUSADO")) color = "bg-purple-100 text-purple-800";
+        else if (labelText.includes("AGUARDANDO")) color = "bg-green-100 text-green-800";
+        else if (labelText.includes("FINALIZADO") || labelText.includes("ENVIADO") || labelText.includes("ERROR") || labelText.includes("SUBINDO") || labelText.includes("PUBLICANDO") || labelText.includes("CORREÇÃO")) color = "bg-red-100 text-red-800";
+        else if (labelText.includes("REJEITADO")) color = "bg-teal-100 text-teal-800";
+
+        return { label: labelText, color };
     };
 
     const statusInfo = getStatusLabel(post.status);

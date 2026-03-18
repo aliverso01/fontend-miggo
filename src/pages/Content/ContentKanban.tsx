@@ -63,25 +63,31 @@ export interface PostMediaLink {
     media: number;
 }
 
-export interface PostMediaLink {
+export interface PostStatus {
     id: number;
-    post: number;
-    media: number;
+    name: string;
+    color?: string;
 }
 
-const STATUS_LABELS: Record<number, string> = {
-    1: "A CRIAR",
-    2: "RASCUNHO",
-    3: "AGENDADO",
-    4: "ENVIADO",
-    5: "PENDENTE",
-    6: "PAUSADO",
-    7: "FINALIZADO",
-    8: "APROVADO",
-    9: "ENVIANDO",
-    10: "PUBLICADO",
-    11: "CANCELADO",
-    12: "CORREÇÃO"
+export const translateStatus = (name: string): string => {
+    if (!name) return "DESCONHECIDO";
+    const map: Record<string, string> = {
+        'uploading': 'ENVIANDO',
+        'error': 'ERRO',
+        'sent': 'ENVIADO',
+        'finished': 'FINALIZADO',
+        'holding': 'AGUARDANDO',
+        'paused': 'PAUSADO',
+        'in_review': 'EM REVISÃO',
+        'rejected': 'REJEITADO',
+        'approved': 'APROVADO',
+        'pending': 'PENDENTE',
+        'canceled': 'CANCELADO',
+        'published': 'PUBLICADO',
+        'scheduled': 'AGENDADO',
+        'draft': 'RASCUNHO',
+    };
+    return map[name.toLowerCase()] || name.toUpperCase();
 };
 
 export default function ContentKanban() {
@@ -91,6 +97,7 @@ export default function ContentKanban() {
     const [posts, setPosts] = useState<Post[]>([]);
     const [clients, setClients] = useState<Client[]>([]);
     const [formats, setFormats] = useState<Format[]>([]);
+    const [statuses, setStatuses] = useState<PostStatus[]>([]);
     const [calendarRules, setCalendarRules] = useState<any[]>([]);
     const [loading, setLoading] = useState(false);
 
@@ -204,6 +211,20 @@ export default function ContentKanban() {
             newDate.setDate(prev.getDate() + 7);
             return newDate;
         });
+    };
+
+    const fetchStatuses = async () => {
+        try {
+            const response = await fetch("/api/v1/post/status/list/", {
+                headers: { Authorization: API_KEY },
+            });
+            if (response.ok) {
+                const data = await response.json();
+                setStatuses(data);
+            }
+        } catch (error) {
+            console.error("Error fetching statuses:", error);
+        }
     };
 
     const fetchFormats = async () => {
@@ -320,6 +341,7 @@ export default function ContentKanban() {
         if (user) {
             fetchClients();
             fetchFormats();
+            fetchStatuses();
             fetchMedias();
             fetchPostMedias();
         }
@@ -960,7 +982,7 @@ export default function ContentKanban() {
         if (description !== undefined) {
             newData.correction_description = description;
         }
-        
+
         setEditFormData(newData);
         await performUpdatePost(newData);
     };
@@ -1028,13 +1050,14 @@ export default function ContentKanban() {
                             <Select
                                 options={[
                                     { value: "", label: "Todos" },
-                                    ...Object.entries(STATUS_LABELS)
-                                        .filter(([key]) => {
-                                            // Clientes não veem 'A CRIAR' (1) nem 'RASCUNHO' (2)
-                                            if (user?.role === 'client' && (Number(key) === 1 || Number(key) === 2)) return false;
+                                    ...statuses
+                                        .filter(s => {
+                                            const translated = translateStatus(s.name).toUpperCase();
+                                            // Clientes não veem A CRIAR nem RASCUNHO (geralmente IDs associados a esses nomes)
+                                            if (user?.role === 'client' && (translated.includes('CRIAR') || translated.includes('RASCUNHO'))) return false;
                                             return true;
                                         })
-                                        .map(([key, label]) => ({ value: key, label }))
+                                        .map(s => ({ value: String(s.id), label: translateStatus(s.name) }))
                                 ]}
                                 placeholder="Status"
                                 onChange={(val) => setSelectedStatus(val === "" ? "" : Number(val))}
@@ -1103,6 +1126,7 @@ export default function ContentKanban() {
                                 return matchDate && matchClient && matchStatus && matchFormat && matchSearch;
                             })}
                             formats={formats} // Pass formats
+                            statuses={statuses}
                             clients={clients}
                             medias={medias}
                             postMedias={postMedias}
@@ -1141,6 +1165,7 @@ export default function ContentKanban() {
                 handleInputChange={handleEditInputChange}
                 loading={loading}
                 formats={formats}
+                statuses={statuses}
                 medias={medias}
                 postMedias={postMedias}
                 onUploadMedia={handleUploadMedia}
