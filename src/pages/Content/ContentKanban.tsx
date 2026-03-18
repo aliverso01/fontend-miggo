@@ -864,8 +864,12 @@ export default function ContentKanban() {
                 body: JSON.stringify({ publish: action, post_id: effectivePost.id })
             });
 
-            if (response.ok) {
-                alert(`Post ${action === 'cancel' ? 'cancelado' : action === 'publish' ? 'publicado' : 'agendado'} com sucesso!`);
+            if (response.ok || response.status === 202) {
+                if (response.status === 202) {
+                    alert(`Post enviado para ${action === 'publish' ? 'publicação' : 'agendamento'}! O status será atualizado automaticamente em instantes.`);
+                } else {
+                    alert(`Post ${action === 'cancel' ? 'cancelado' : action === 'publish' ? 'publicado' : 'agendado'} com sucesso!`);
+                }
                 await fetchPosts();
                 closeEditModal();
             } else {
