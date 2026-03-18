@@ -19,7 +19,7 @@ interface CreatePostModalProps {
     handleFileChange: (e: React.ChangeEvent<HTMLInputElement>) => void;
     loading: boolean;
     formats: Format[];
-    mediaFiles?: File[];
+    mediaFiles: File[];
     clients?: { id: number; name: string }[];
     selectedClient?: string;
     onClientChange?: (clientId: string) => void;

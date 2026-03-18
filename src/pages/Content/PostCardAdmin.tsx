@@ -3,11 +3,12 @@ import { useDrag } from "react-dnd";
 import { MoreDotIcon, PencilIcon, TrashBinIcon, PaperPlaneIcon } from "../../icons";
 import { Dropdown } from "../../components/ui/dropdown/Dropdown";
 import { DropdownItem } from "../../components/ui/dropdown/DropdownItem";
-import { Client, Format, Media, Post, PostMediaLink, getFrontendStatusLabel } from "./ContentKanban";
+import { Client, Format, Media, Post, PostMediaLink, PostStatus, resolveStatusStyle } from "./ContentKanban";
 
 interface PostCardProps {
     post: Post;
     formats?: Format[];
+    statuses?: PostStatus[];
     clients?: Client[];
     medias?: Media[];
     postMedias?: PostMediaLink[];
@@ -17,7 +18,7 @@ interface PostCardProps {
     onPublish?: (post: Post) => void;
 }
 
-export default function PostCard({ post, formats, clients, medias, postMedias, onEdit, onDelete, onPublish }: PostCardProps) {
+export default function PostCard({ post, formats, statuses, clients, medias, postMedias, onEdit, onDelete, onPublish }: PostCardProps) {
     const ref = useRef<HTMLDivElement>(null);
     const [isDropdownOpen, setIsDropdownOpen] = useState(false);
 
@@ -31,7 +32,7 @@ export default function PostCard({ post, formats, clients, medias, postMedias, o
 
     drag(ref);
 
-    const statusInfo = getFrontendStatusLabel(post.status);
+    const statusInfo = resolveStatusStyle(post.status, statuses || []);
 
     // --- Format resolution ---
     // Formato escolhido para publicação (pode ser null)

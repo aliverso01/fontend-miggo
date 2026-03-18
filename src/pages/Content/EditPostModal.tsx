@@ -7,7 +7,7 @@ import { Modal } from "../../components/ui/modal";
 import Input from "../../components/form/input/InputField";
 import Label from "../../components/form/Label";
 import Button from "../../components/ui/button/Button";
-import { Format, Media, PostMediaLink, getFrontendStatusLabel } from "./ContentKanban";
+import { Format, Media, PostMediaLink, PostStatus, resolveStatusStyle } from "./ContentKanban";
 import Select from "../../components/form/Select";
 import { useSubscription } from "../../hooks/useSubscription";
 import {
@@ -27,6 +27,7 @@ interface EditPostModalProps {
     handleInputChange: (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) => void;
     loading: boolean;
     formats: Format[];
+    statuses?: PostStatus[];
     medias: Media[];
     postMedias: PostMediaLink[];
     currentPostId?: number;
@@ -50,6 +51,7 @@ export default function EditPostModal({
     handleInputChange,
     loading,
     formats,
+    statuses,
     medias,
     postMedias,
     currentPostId,
@@ -128,7 +130,7 @@ export default function EditPostModal({
             .filter(Boolean) as (Media & { linkId: number })[]
         : [];
 
-    const statusInfo = getFrontendStatusLabel(formData.status);
+    const statusInfo = resolveStatusStyle(formData.status, statuses || []);
 
     // Helper to determine media type
     const getMediaType = (url: string) => {

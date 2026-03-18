@@ -63,34 +63,36 @@ export interface PostMediaLink {
     media: number;
 }
 
-export const STATUS_MAP: Record<string, { label: string, color: string }> = {
-    'uploading': { label: 'SUBINDO', color: 'bg-red-100 text-red-800' },
-    'error': { label: 'ERRO', color: 'bg-red-100 text-red-800' },
-    'sent': { label: 'ENVIADO', color: 'bg-red-100 text-red-800' },
-    'finished': { label: 'FINALIZADO', color: 'bg-red-100 text-red-800' },
-    'holding': { label: 'AGUARDANDO', color: 'bg-green-100 text-green-800' },
-    'paused': { label: 'PAUSADO', color: 'bg-purple-100 text-purple-800' },
-    'in_review': { label: 'EM REVISÃO', color: 'bg-cyan-100 text-cyan-800' },
-    'rejected': { label: 'REJEITADO', color: 'bg-teal-100 text-teal-800' },
-    'approved': { label: 'APROVADO', color: 'bg-yellow-100 text-yellow-800' },
-    'pending': { label: 'PENDENTE', color: 'bg-orange-100 text-orange-800' },
-    'canceled': { label: 'CANCELADO', color: 'bg-indigo-100 text-indigo-800' },
-    'published': { label: 'PUBLICADO', color: 'bg-blue-100 text-blue-800' },
-    'scheduled': { label: 'AGENDADO', color: 'bg-gray-200 text-gray-800' },
-    'draft': { label: 'RASCUNHO', color: 'bg-gray-100 text-gray-600' }
-};
+export interface PostStatus {
+    id: number;
+    name: string;
+    description: string;
+    color?: string;
+}
 
-export const getFrontendStatusLabel = (statusValue: string | number | undefined) => {
-    // Fallback for old numbers if any remain
-    if (typeof statusValue === 'number') {
-        const legacy: Record<number, string> = {
-            1: 'draft', 2: 'draft', 3: 'scheduled', 4: 'sent', 5: 'pending', 6: 'paused',
-            7: 'finished', 8: 'approved', 9: 'uploading', 10: 'published', 11: 'canceled', 12: 'error'
-        };
-        statusValue = legacy[statusValue] || String(statusValue);
-    }
-    const safeValue = statusValue ? String(statusValue).toLowerCase() : "";
-    return STATUS_MAP[safeValue] || { label: 'DESCONHECIDO', color: 'bg-gray-100 text-gray-800' };
+export const resolveStatusStyle = (statusValue: string | number | undefined, statuses: PostStatus[]) => {
+    if (statusValue == null) return { label: 'DESCONHECIDO', color: 'bg-gray-100 text-gray-800' };
+    
+    const statusObj = statuses.find(s => String(s.id) === String(statusValue) || s.name.toLowerCase() === String(statusValue).toLowerCase());
+    
+    let color = 'bg-gray-100 text-gray-800';
+    if (!statusObj) return { label: 'DESCONHECIDO', color };
+
+    const nameLower = statusObj.name.toLowerCase();
+    
+    if (nameLower.includes('draft') || nameLower.includes('criar')) color = 'bg-gray-100 text-gray-600';
+    else if (nameLower.includes('scheduled')) color = 'bg-gray-200 text-gray-800';
+    else if (nameLower.includes('published')) color = 'bg-blue-100 text-blue-800';
+    else if (nameLower.includes('canceled')) color = 'bg-indigo-100 text-indigo-800';
+    else if (nameLower.includes('approved')) color = 'bg-yellow-100 text-yellow-800';
+    else if (nameLower.includes('rejected')) color = 'bg-teal-100 text-teal-800';
+    else if (nameLower.includes('review')) color = 'bg-cyan-100 text-cyan-800';
+    else if (nameLower.includes('paused')) color = 'bg-purple-100 text-purple-800';
+    else if (nameLower.includes('holding') || nameLower.includes('pending')) color = 'bg-green-100 text-green-800';
+    else if (nameLower.includes('finished') || nameLower.includes('sent') || nameLower.includes('error') || nameLower.includes('uploading')) color = 'bg-red-100 text-red-800';
+    
+    // EXIBE O DESCRIPTION EM VEZ DO NAME (uppercase para manter o padrão visual)
+    return { label: (statusObj.description || statusObj.name).toUpperCase(), color };
 };
 
 export default function ContentKanban() {
@@ -100,6 +102,7 @@ export default function ContentKanban() {
     const [posts, setPosts] = useState<Post[]>([]);
     const [clients, setClients] = useState<Client[]>([]);
     const [formats, setFormats] = useState<Format[]>([]);
+    const [statuses, setStatuses] = useState<PostStatus[]>([]);
     const [calendarRules, setCalendarRules] = useState<any[]>([]);
     const [loading, setLoading] = useState(false);
 
@@ -229,6 +232,20 @@ export default function ContentKanban() {
         }
     };
 
+    const fetchStatuses = async () => {
+        try {
+            const response = await fetch("/api/v1/post/status/list/", {
+                headers: { Authorization: API_KEY },
+            });
+            if (response.ok) {
+                const data = await response.json();
+                setStatuses(data);
+            }
+        } catch (error) {
+            console.error("Error fetching statuses:", error);
+        }
+    };
+
     const fetchClients = async () => {
         try {
             const response = await fetch("/api/v1/client/list/", {
@@ -328,6 +345,7 @@ export default function ContentKanban() {
     useEffect(() => {
         if (user) {
             fetchClients();
+            fetchStatuses();
             fetchFormats();
             fetchMedias();
             fetchPostMedias();
@@ -1037,12 +1055,12 @@ export default function ContentKanban() {
                             <Select
                                 options={[
                                     { value: "", label: "Todos" },
-                                    ...Object.entries(STATUS_MAP)
-                                        .filter(([key]) => {
-                                            if (user?.role === 'client' && key === 'draft') return false;
+                                    ...statuses
+                                        .filter(s => {
+                                            if (user?.role === 'client' && s.name.toLowerCase() === 'draft') return false;
                                             return true;
                                         })
-                                        .map(([key, obj]) => ({ value: key, label: obj.label }))
+                                        .map(s => ({ value: s.name, label: String(s.description || s.name).toUpperCase() }))
                                 ]}
                                 placeholder="Status"
                                 onChange={(val) => setSelectedStatus(val === "" ? "" : val)}
@@ -1114,6 +1132,7 @@ export default function ContentKanban() {
                                 return matchDate && matchClient && matchStatus && matchFormat && matchSearch;
                             })}
                             formats={formats} // Pass formats
+                            statuses={statuses}
                             clients={clients}
                             medias={medias}
                             postMedias={postMedias}
@@ -1152,6 +1171,7 @@ export default function ContentKanban() {
                 handleInputChange={handleEditInputChange}
                 loading={loading}
                 formats={formats}
+                statuses={statuses}
                 medias={medias}
                 postMedias={postMedias}
                 onUploadMedia={handleUploadMedia}
