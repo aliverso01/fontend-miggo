@@ -89,7 +89,8 @@ export const getFrontendStatusLabel = (statusValue: string | number | undefined)
         };
         statusValue = legacy[statusValue] || String(statusValue);
     }
-    const found = FRONTEND_STATUSES.find(s => s.value === statusValue);
+    const safeValue = statusValue ? String(statusValue).toLowerCase() : "";
+    const found = FRONTEND_STATUSES.find(s => s.value.toLowerCase() === safeValue);
     return found ? { label: found.label, color: found.color } : { label: 'DESCONHECIDO', color: 'bg-gray-100 text-gray-800' };
 };
 
@@ -804,7 +805,7 @@ export default function ContentKanban() {
         // If post is currently Scheduled (1) and user is saving (implied edit),
         // and user didn't explicitly change status to something else,
         // revert to Draft (2).
-        if (currentPost?.status === 'scheduled' && data.status === 'scheduled') {
+        if (String(currentPost?.status).toLowerCase() === 'scheduled' && String(data.status).toLowerCase() === 'scheduled') {
             data.status = 'draft';
         }
 
@@ -1097,13 +1098,13 @@ export default function ContentKanban() {
                             dayName={dayNames[index]}
                             posts={enrichedPosts.filter((p: Post) => {
                                 // Clientes não veem posts 'A CRIAR' (1) nem 'RASCUNHO' (2)
-                                if (user?.role === 'client' && (p.status === 'draft')) return false;
+                                if (user?.role === 'client' && (String(p.status).toLowerCase() === 'draft')) return false;
 
                                 const matchDate = p.post_date === date;
                                 const matchClient = selectedClient === "" || p.client === selectedClient;
                                 
-                                // Let's coerce status to string safely to check
-                                const matchStatus = selectedStatus === "" || String(p.status) === String(selectedStatus);
+                                // Let's coerce status to string safely to check, ignoring case
+                                const matchStatus = selectedStatus === "" || String(p.status).toLowerCase() === String(selectedStatus).toLowerCase();
                                 
                                 const matchFormat = selectedFormat === "" || p.post_format === selectedFormat;
 
