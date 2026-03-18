@@ -63,22 +63,22 @@ export interface PostMediaLink {
     media: number;
 }
 
-export const FRONTEND_STATUSES = [
-    { value: 'uploading', label: 'SUBINDO', color: 'bg-red-100 text-red-800' },
-    { value: 'error', label: 'ERRO', color: 'bg-red-100 text-red-800' },
-    { value: 'sent', label: 'ENVIADO', color: 'bg-red-100 text-red-800' },
-    { value: 'finished', label: 'FINALIZADO', color: 'bg-red-100 text-red-800' },
-    { value: 'holding', label: 'AGUARDANDO', color: 'bg-green-100 text-green-800' },
-    { value: 'paused', label: 'PAUSADO', color: 'bg-purple-100 text-purple-800' },
-    { value: 'in_review', label: 'EM REVISÃO', color: 'bg-cyan-100 text-cyan-800' },
-    { value: 'rejected', label: 'REJEITADO', color: 'bg-teal-100 text-teal-800' },
-    { value: 'approved', label: 'APROVADO', color: 'bg-yellow-100 text-yellow-800' },
-    { value: 'pending', label: 'PENDENTE', color: 'bg-orange-100 text-orange-800' },
-    { value: 'canceled', label: 'CANCELADO', color: 'bg-indigo-100 text-indigo-800' },
-    { value: 'published', label: 'PUBLICADO', color: 'bg-blue-100 text-blue-800' },
-    { value: 'scheduled', label: 'AGENDADO', color: 'bg-gray-200 text-gray-800' },
-    { value: 'draft', label: 'RASCUNHO', color: 'bg-gray-100 text-gray-600' }
-];
+export const STATUS_MAP: Record<string, { label: string, color: string }> = {
+    'uploading': { label: 'SUBINDO', color: 'bg-red-100 text-red-800' },
+    'error': { label: 'ERRO', color: 'bg-red-100 text-red-800' },
+    'sent': { label: 'ENVIADO', color: 'bg-red-100 text-red-800' },
+    'finished': { label: 'FINALIZADO', color: 'bg-red-100 text-red-800' },
+    'holding': { label: 'AGUARDANDO', color: 'bg-green-100 text-green-800' },
+    'paused': { label: 'PAUSADO', color: 'bg-purple-100 text-purple-800' },
+    'in_review': { label: 'EM REVISÃO', color: 'bg-cyan-100 text-cyan-800' },
+    'rejected': { label: 'REJEITADO', color: 'bg-teal-100 text-teal-800' },
+    'approved': { label: 'APROVADO', color: 'bg-yellow-100 text-yellow-800' },
+    'pending': { label: 'PENDENTE', color: 'bg-orange-100 text-orange-800' },
+    'canceled': { label: 'CANCELADO', color: 'bg-indigo-100 text-indigo-800' },
+    'published': { label: 'PUBLICADO', color: 'bg-blue-100 text-blue-800' },
+    'scheduled': { label: 'AGENDADO', color: 'bg-gray-200 text-gray-800' },
+    'draft': { label: 'RASCUNHO', color: 'bg-gray-100 text-gray-600' }
+};
 
 export const getFrontendStatusLabel = (statusValue: string | number | undefined) => {
     // Fallback for old numbers if any remain
@@ -90,8 +90,7 @@ export const getFrontendStatusLabel = (statusValue: string | number | undefined)
         statusValue = legacy[statusValue] || String(statusValue);
     }
     const safeValue = statusValue ? String(statusValue).toLowerCase() : "";
-    const found = FRONTEND_STATUSES.find(s => s.value.toLowerCase() === safeValue);
-    return found ? { label: found.label, color: found.color } : { label: 'DESCONHECIDO', color: 'bg-gray-100 text-gray-800' };
+    return STATUS_MAP[safeValue] || { label: 'DESCONHECIDO', color: 'bg-gray-100 text-gray-800' };
 };
 
 export default function ContentKanban() {
@@ -1038,13 +1037,12 @@ export default function ContentKanban() {
                             <Select
                                 options={[
                                     { value: "", label: "Todos" },
-                                    ...FRONTEND_STATUSES
-                                        .filter(s => {
-                                            // Clientes não veem A CRIAR nem RASCUNHO (geralmente IDs associados a esses nomes)
-                                            if (user?.role === 'client' && (s.value === 'draft')) return false;
+                                    ...Object.entries(STATUS_MAP)
+                                        .filter(([key]) => {
+                                            if (user?.role === 'client' && key === 'draft') return false;
                                             return true;
                                         })
-                                        .map(s => ({ value: s.value, label: s.label }))
+                                        .map(([key, obj]) => ({ value: key, label: obj.label }))
                                 ]}
                                 placeholder="Status"
                                 onChange={(val) => setSelectedStatus(val === "" ? "" : val)}
