@@ -142,7 +142,7 @@ export default function EditPostModal({
     };
 
     const getStatusId = (name: string) => {
-        const found = statuses?.find(s => s.name === name);
+        const found = statuses?.find(s => s.name?.toLowerCase() === name.toLowerCase());
         return found ? found.id : name;
     };
 
