@@ -33,7 +33,7 @@ interface EditPostModalProps {
     currentPostId?: number;
     onDeleteMediaLink: (linkId: number) => void;
     onUploadMedia: (e: React.ChangeEvent<HTMLInputElement>) => void;
-    onStatusAction: (status: number) => void;
+    onStatusAction: (status: string | number, description?: string) => void;
     onPublish?: () => void;
     userRole?: string;
     onImportTemplate?: (page?: number) => Promise<void>;
@@ -524,7 +524,7 @@ export default function EditPostModal({
                                     <Button
                                         className="w-full bg-green-500 hover:bg-green-600 text-white justify-start"
                                         startIcon={<CheckLineIcon className="w-5 h-5" />}
-                                        onClick={() => { if (onPublish) onPublish(); else onStatusAction(10); }} // Force Publish (was 3 - Agendar)
+                                        onClick={() => { if (onPublish) onPublish(); else onStatusAction('published'); }} // Force Publish
                                         disabled={loading}
                                     >
                                         Aprovar e Publicar
@@ -541,7 +541,7 @@ export default function EditPostModal({
                                                     alert("Por favor, descreva o ajuste necessário antes de enviar.");
                                                     return;
                                                 }
-                                                (onStatusAction as any)(12, correctionDescription);
+                                                onStatusAction('rejected', correctionDescription);
                                             }
                                         }}
                                         disabled={loading}
@@ -564,7 +564,7 @@ export default function EditPostModal({
                                     <Button
                                         className="w-full bg-[#7ACAC9] hover:bg-[#68b0af] text-white justify-start"
                                         startIcon={<TimeIcon className="w-5 h-5" />}
-                                        onClick={() => onStatusAction(6)} // Pausado
+                                        onClick={() => onStatusAction('paused')} // Pausado
                                         disabled={loading}
                                     >
                                         Pausar envio
@@ -573,7 +573,7 @@ export default function EditPostModal({
                                     <Button
                                         className="w-full bg-[#7ACAC9] hover:bg-[#68b0af] text-white justify-start"
                                         startIcon={<TaskIcon className="w-5 h-5" />}
-                                        onClick={() => { if (onSendWhatsApp) onSendWhatsApp(); else onStatusAction(5); }} // Pendente (Para Revisão)
+                                        onClick={() => { if (onSendWhatsApp) onSendWhatsApp(); else onStatusAction('in_review'); }} // Pendente (Para Revisão)
                                         disabled={loading}
                                     >
                                         Enviar Para Revisão

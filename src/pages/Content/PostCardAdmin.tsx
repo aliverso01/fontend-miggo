@@ -185,7 +185,7 @@ export default function PostCard({ post, formats, statuses, clients, medias, pos
                     onClose={() => setIsDropdownOpen(false)}
                     className="w-40 right-0 top-full"
                 >
-                    {onPublish && post.status !== 10 && (
+                    {onPublish && String(post.status).toLowerCase() !== 'published' && (
                         <DropdownItem
                             className="flex items-center gap-2 px-4 py-2 text-sm text-brand-600 hover:bg-brand-50 dark:text-brand-400 dark:hover:bg-white/5 cursor-pointer"
                             onClick={() => { setIsDropdownOpen(false); onPublish(post); }}
@@ -235,7 +235,7 @@ export default function PostCard({ post, formats, statuses, clients, medias, pos
             </div>
 
             {/* Correction Description */}
-            {post.status === 12 && post.correction_description && (
+            {String(post.status).toLowerCase() === 'rejected' && post.correction_description && (
                 <div className="mt-2 text-[11px] text-red-500 italic line-clamp-2 bg-red-50 dark:bg-red-500/5 px-2 py-1 rounded border border-red-100 dark:border-red-800">
                     "{post.correction_description}"
                 </div>

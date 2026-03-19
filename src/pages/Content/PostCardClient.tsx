@@ -199,6 +199,9 @@ export default function PostCard({ post, formats, statuses, clients, medias, pos
             </h4>
             <p className="mb-3 text-[11px] font-medium text-gray-500 dark:text-gray-400 mt-0.5 truncate leading-tight">
                 {post.title || post.subject}
+                {String(post.status).toLowerCase() === 'rejected' && post.correction_description && (
+                    <span className="text-error-500 ml-1">({post.correction_description})</span>
+                )}
             </p>
 
             {/* Content: Media (Replaces text description) */}
