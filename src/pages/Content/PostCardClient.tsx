@@ -37,9 +37,9 @@ export default function PostCardClient({ post, formats, statuses, clients, media
             const mediaObj = medias.find(m => m.id === link.media);
             if (mediaObj) {
                 displayMedia = mediaObj;
-                const ext = mediaObj.media.split('.').pop()?.toLowerCase();
+                const ext = mediaObj.media.split('?')[0].split('.').pop()?.toLowerCase();
                 if (['jpg', 'jpeg', 'png', 'gif', 'webp', 'svg'].includes(ext || '')) displayMediaType = 'image';
-                else if (['mp4', 'webm', 'ogg', 'mov'].includes(ext || '')) displayMediaType = 'video';
+                else if (['mp4', 'webm', 'ogg', 'mov', 'avi'].includes(ext || '')) displayMediaType = 'video';
                 else if (['pdf'].includes(ext || '')) displayMediaType = 'pdf';
             }
         }
@@ -47,9 +47,9 @@ export default function PostCardClient({ post, formats, statuses, clients, media
 
     if (!displayMedia && post.media) {
         displayMedia = post.media;
-        const ext = post.media.split('.').pop()?.toLowerCase();
+        const ext = post.media.split('?')[0].split('.').pop()?.toLowerCase();
         if (['jpg', 'jpeg', 'png', 'gif', 'webp', 'svg'].includes(ext || '')) displayMediaType = 'image';
-        else if (['mp4', 'webm', 'ogg', 'mov'].includes(ext || '')) displayMediaType = 'video';
+        else if (['mp4', 'webm', 'ogg', 'mov', 'avi'].includes(ext || '')) displayMediaType = 'video';
         else if (['pdf'].includes(ext || '')) displayMediaType = 'pdf';
     }
 
@@ -175,7 +175,7 @@ export default function PostCardClient({ post, formats, statuses, clients, media
                     </h4>
 
                     {String(post.status).toLowerCase() === 'rejected' && post.correction_description && (
-                         <div className="mb-4 bg-red-50/50 dark:bg-red-500/10 border border-red-100 dark:border-red-500/20 rounded-lg p-3">
+                        <div className="mb-4 bg-red-50/50 dark:bg-red-500/10 border border-red-100 dark:border-red-500/20 rounded-lg p-3">
                             <p className="text-sm text-error-600 dark:text-error-400">
                                 <strong>Feedback / Correção: </strong> {post.correction_description}
                             </p>

@@ -56,9 +56,9 @@ export default function PostCard({ post, formats, statuses, clients, medias, pos
             const mediaObj = medias.find(m => m.id === link.media);
             if (mediaObj) {
                 displayMedia = mediaObj;
-                const ext = mediaObj.media.split('.').pop()?.toLowerCase();
+                const ext = mediaObj.media.split('?')[0].split('.').pop()?.toLowerCase();
                 if (['jpg', 'jpeg', 'png', 'gif', 'webp', 'svg'].includes(ext || '')) displayMediaType = 'image';
-                else if (['mp4', 'webm', 'ogg', 'mov'].includes(ext || '')) displayMediaType = 'video';
+                else if (['mp4', 'webm', 'ogg', 'mov', 'avi'].includes(ext || '')) displayMediaType = 'video';
                 else if (['pdf'].includes(ext || '')) displayMediaType = 'pdf';
             }
         }
@@ -66,9 +66,9 @@ export default function PostCard({ post, formats, statuses, clients, medias, pos
 
     if (!displayMedia && post.media) {
         displayMedia = post.media;
-        const ext = post.media.split('.').pop()?.toLowerCase();
+        const ext = post.media.split('?')[0].split('.').pop()?.toLowerCase();
         if (['jpg', 'jpeg', 'png', 'gif', 'webp', 'svg'].includes(ext || '')) displayMediaType = 'image';
-        else if (['mp4', 'webm', 'ogg', 'mov'].includes(ext || '')) displayMediaType = 'video';
+        else if (['mp4', 'webm', 'ogg', 'mov', 'avi'].includes(ext || '')) displayMediaType = 'video';
         else if (['pdf'].includes(ext || '')) displayMediaType = 'pdf';
     }
 
