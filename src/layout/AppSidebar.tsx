@@ -67,6 +67,7 @@ const AppSidebar: React.FC = () => {
       items: [
         { icon: <GroupIcon />, name: "Clientes", path: "/clients", adminOnly: true },
         { icon: <ListIcon />, name: "Conteúdos", path: "/content", adminOnly: true },
+        { icon: <ListIcon />, name: "Sugestão de Pauta", path: "/agenda/sugestao", adminOnly: true },
         { icon: <CalenderIcon />, name: "Biblioteca de Mídias", path: "/media-library", adminOnly: true },
         { icon: <ShootingStarIcon />, name: "Identidade Visual", path: "/brandkit", adminOnly: true },
       ],

@@ -99,7 +99,7 @@ export default function AgendaSugestao() {
     const fetchSuggestions = async () => {
         setLoading(true);
         try {
-            const params = isAdmin ? "" : clientId ? `?client_id=${clientId}` : "";
+            const params = clientId ? `?client_id=${clientId}` : "";
             const res = await fetch(`/api/v1/agenda/list/${params}`, {
                 credentials: "include",
                 headers: { Authorization: API_KEY },

@@ -36,7 +36,7 @@ interface EditPostModalProps {
     onStatusAction: (status: string | number, description?: string) => void;
     onPublish?: () => void;
     userRole?: string;
-    onImportTemplate?: (page?: number) => Promise<void>;
+    onImportTemplate?: (page?: string) => Promise<void>;
     clients?: { id: number; name: string }[];
     selectedClient?: string;
     onClientChange?: (clientId: string) => void;
@@ -306,21 +306,21 @@ export default function EditPostModal({
                                         <div className="flex-1">
                                             <Label>Página do Template</Label>
                                             <Input
-                                                type="number"
+                                                type="text"
                                                 name="template_page"
-                                                placeholder="Página (ex: 1)"
+                                                placeholder="Páginas (ex: 1, 1-3, 1,4)"
                                                 value={formData.template_page}
                                                 onChange={handleInputChange}
                                             />
                                         </div>
                                         <button
                                             type="button"
-                                            disabled={importingTemplate || !formData.template_page || Number(formData.template_page) <= 0}
-                                            title={!formData.template_page ? "Informe o número da página para baixar" : ""}
+                                            disabled={importingTemplate || !formData.template_page}
+                                            title={!formData.template_page ? "Informe o número/intervalo de páginas para baixar" : ""}
                                             onClick={async () => {
                                                 setImportingTemplate(true);
                                                 try {
-                                                    await onImportTemplate(Number(formData.template_page));
+                                                    await onImportTemplate(String(formData.template_page));
                                                 } finally {
                                                     setImportingTemplate(false);
                                                 }

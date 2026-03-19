@@ -14,6 +14,7 @@ import Select from "../../components/form/Select";
 import KanbanColumn from "./KanbanColumn";
 import CreatePostModal from "./CreatePostModal";
 import EditPostModal from "./EditPostModal";
+import PostCardClient from "./PostCardClient";
 import { useAuthContext } from "../../context/AuthContext";
 import { useSearch } from "../../context/SearchContext";
 
@@ -32,7 +33,7 @@ export interface Post {
     calendar_id?: number | null;
     editorial_calendar?: number | null;
     template_link?: string;
-    template_page?: number | null;
+    template_page?: string | null;
     correction_description?: string;
 }
 
@@ -1118,25 +1119,19 @@ export default function ContentKanban() {
                 </div>
 
                 <div className="flex flex-1 gap-6 overflow-x-auto pb-4">
-                    {weekDates.map((date, index) => (
-                        <KanbanColumn
-                            key={date}
-                            date={date}
-                            dayName={dayNames[index]}
-                            posts={enrichedPosts.filter((p: Post) => {
-                                // Clientes não veem posts 'A CRIAR' (1) nem 'RASCUNHO' (2)
-                                if (user?.role === 'client' && (String(p.status).toLowerCase() === 'draft')) return false;
+                    {user?.role === 'client' ? (
+                        <div className="w-full flex flex-col gap-4 overflow-y-auto pr-2 custom-scrollbar">
+                            {enrichedPosts.filter((p: Post) => {
+                                if (String(p.status).toLowerCase() === 'draft') return false;
 
-                                const matchDate = p.post_date === date;
+                                const matchDate = weekDates.includes(p.post_date);
                                 const matchClient = selectedClient === "" || p.client === selectedClient;
                                 
-                                // Let's coerce status to string safely to check, ignoring case
                                 let matchStatus = false;
                                 if (selectedStatus === "") {
                                     matchStatus = true;
                                 } else {
                                     const postStatusObj = statuses.find(s => String(s.id) === String(p.status) || s.name.toLowerCase() === String(p.status).toLowerCase());
-                                    // Compara se o ID do status coincide com o select que armazena IDS. (ou default p.status string/id)
                                     matchStatus = (postStatusObj?.id === Number(selectedStatus)) || (String(p.status).toLowerCase() === String(selectedStatus).toLowerCase());
                                 }
                                 
@@ -1148,18 +1143,92 @@ export default function ContentKanban() {
                                 const matchSearch = !query || clientName.includes(query) || postSubject.includes(query);
 
                                 return matchDate && matchClient && matchStatus && matchFormat && matchSearch;
-                            })}
-                            formats={formats} // Pass formats
-                            statuses={statuses}
-                            clients={clients}
-                            medias={medias}
-                            postMedias={postMedias}
-                            onMovePost={movePost}
-                            onEdit={openEditPost}
-                            onDelete={openDeletePost}
-                            onPublish={handlePublishPost}
-                        />
-                    ))}
+                            })
+                            // Order by date and time
+                            .sort((a, b) => {
+                                const datetimeA = new Date(`${a.post_date}T${a.post_time}`);
+                                const datetimeB = new Date(`${b.post_date}T${b.post_time}`);
+                                return datetimeA.getTime() - datetimeB.getTime();
+                            })
+                            .map((post) => (
+                                <PostCardClient
+                                    key={post.id}
+                                    post={post}
+                                    formats={formats}
+                                    statuses={statuses}
+                                    clients={clients}
+                                    medias={medias}
+                                    postMedias={postMedias}
+                                    onEdit={openEditPost}
+                                    onDelete={openDeletePost}
+                                />
+                            ))}
+                            
+                            {enrichedPosts.filter((p: Post) => {
+                                if (String(p.status).toLowerCase() === 'draft') return false;
+                                const matchDate = weekDates.includes(p.post_date);
+                                const matchClient = selectedClient === "" || p.client === selectedClient;
+                                let matchStatus = false;
+                                if (selectedStatus === "") {
+                                    matchStatus = true;
+                                } else {
+                                    const postStatusObj = statuses.find(s => String(s.id) === String(p.status) || s.name.toLowerCase() === String(p.status).toLowerCase());
+                                    matchStatus = (postStatusObj?.id === Number(selectedStatus)) || (String(p.status).toLowerCase() === String(selectedStatus).toLowerCase());
+                                }
+                                const matchFormat = selectedFormat === "" || p.post_format === selectedFormat;
+                                const query = searchQuery.toLowerCase();
+                                const clientName = clients.find(c => c.id === p.client)?.name.toLowerCase() || "";
+                                const postSubject = p.subject.toLowerCase();
+                                const matchSearch = !query || clientName.includes(query) || postSubject.includes(query);
+                                return matchDate && matchClient && matchStatus && matchFormat && matchSearch;
+                            }).length === 0 && (
+                                <div className="w-full py-12 flex flex-col items-center justify-center text-gray-400">
+                                    <svg className="w-12 h-12 mb-3 text-gray-300" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                                    </svg>
+                                    Nenhum conteúdo encontrado para esta semana
+                                </div>
+                            )}
+                        </div>
+                    ) : (
+                        weekDates.map((date, index) => (
+                            <KanbanColumn
+                                key={date}
+                                date={date}
+                                dayName={dayNames[index]}
+                                posts={enrichedPosts.filter((p: Post) => {
+                                    if (user?.role === 'client' && (String(p.status).toLowerCase() === 'draft')) return false;
+                                    const matchDate = p.post_date === date;
+                                    const matchClient = selectedClient === "" || p.client === selectedClient;
+                                    
+                                    let matchStatus = false;
+                                    if (selectedStatus === "") {
+                                        matchStatus = true;
+                                    } else {
+                                        const postStatusObj = statuses.find(s => String(s.id) === String(p.status) || s.name.toLowerCase() === String(p.status).toLowerCase());
+                                        matchStatus = (postStatusObj?.id === Number(selectedStatus)) || (String(p.status).toLowerCase() === String(selectedStatus).toLowerCase());
+                                    }
+                                    
+                                    const matchFormat = selectedFormat === "" || p.post_format === selectedFormat;
+                                    const query = searchQuery.toLowerCase();
+                                    const clientName = clients.find(c => c.id === p.client)?.name.toLowerCase() || "";
+                                    const postSubject = p.subject.toLowerCase();
+                                    const matchSearch = !query || clientName.includes(query) || postSubject.includes(query);
+                                    
+                                    return matchDate && matchClient && matchStatus && matchFormat && matchSearch;
+                                })}
+                                formats={formats} // Pass formats
+                                statuses={statuses}
+                                clients={clients}
+                                medias={medias}
+                                postMedias={postMedias}
+                                onMovePost={movePost}
+                                onEdit={openEditPost}
+                                onDelete={openDeletePost}
+                                onPublish={handlePublishPost}
+                            />
+                        ))
+                    )}
                 </div>
             </div>
 
@@ -1207,7 +1276,7 @@ export default function ContentKanban() {
                         setEditFormData(prev => ({ ...prev, client: Number(val) }));
                     }
                 }}
-                onImportTemplate={(async (page?: number) => {
+                onImportTemplate={(async (page?: string) => {
                     const post = currentPost;
                     if (!post) return;
 
