@@ -102,8 +102,8 @@ export const resolveStatusStyle = (statusValue: string | number | undefined, sta
     else if (nameLower.includes('holding') || nameLower.includes('pending')) color = 'bg-green-100 text-green-800';
     else if (nameLower.includes('finished') || nameLower.includes('sent') || nameLower.includes('error') || nameLower.includes('uploading')) color = 'bg-red-100 text-red-800';
     
-    // EXIBE O DESCRIPTION EM VEZ DO NAME (uppercase para manter o padrão visual)
-    return { label: (statusObj.description || statusObj.name).toUpperCase(), color };
+    // EXIBE O DESCRIPTION EXATAMENTE COMO VEM DO ENDPOINT
+    return { label: statusObj.description || statusObj.name, color };
 };
 
 export default function ContentKanban() {
@@ -1071,7 +1071,7 @@ export default function ContentKanban() {
                                             if (user?.role === 'client' && s.name.toLowerCase() === 'draft') return false;
                                             return true;
                                         })
-                                        .map(s => ({ value: String(s.id), label: String(s.description || s.name).toUpperCase() }))
+                                        .map(s => ({ value: String(s.id), label: s.description || s.name }))
                                 ]}
                                 placeholder="Status"
                                 onChange={(val) => setSelectedStatus(val === "" ? "" : val)}

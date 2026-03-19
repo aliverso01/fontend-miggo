@@ -494,7 +494,7 @@ export default function EditPostModal({
                         {/* Status Badge Desktop */}
                         <div className="hidden lg:flex items-center gap-2 mb-2">
                             <span className="font-bold text-gray-700 dark:text-gray-300 text-lg">Status:</span>
-                            <span className={`px-3 py-1 rounded-md text-sm font-bold uppercase ${statusInfo.color}`}>
+                            <span className={`px-3 py-1 rounded-md text-sm font-bold ${statusInfo.color}`}>
                                 {statusInfo.label}
                             </span>
                         </div>

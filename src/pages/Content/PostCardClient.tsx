@@ -210,7 +210,7 @@ export default function PostCard({ post, formats, statuses, clients, medias, pos
             </div>
 
             <div className="flex items-center justify-between text-xs text-gray-400 mt-3 border-t border-gray-100 dark:border-gray-700 pt-3">
-                <span className={`px-2 py-0.5 rounded text-[10px] font-bold uppercase ${statusInfo.color}`}>
+                <span className={`px-2 py-0.5 rounded text-[10px] font-bold ${statusInfo.color}`}>
                     {statusInfo.label}
                 </span>
                 <span>{post.post_time.slice(0, 5)}</span>
