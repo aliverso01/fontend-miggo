@@ -141,6 +141,11 @@ export default function EditPostModal({
         return 'unknown';
     };
 
+    const getStatusId = (name: string) => {
+        const found = statuses?.find(s => s.name === name);
+        return found ? found.id : name;
+    };
+
     const renderMediaThumbnail = (media: Media & { linkId: number }) => {
         const type = getMediaType(media.media);
 
@@ -524,7 +529,7 @@ export default function EditPostModal({
                                     <Button
                                         className="w-full bg-green-500 hover:bg-green-600 text-white justify-start"
                                         startIcon={<CheckLineIcon className="w-5 h-5" />}
-                                        onClick={() => { if (onPublish) onPublish(); else onStatusAction('published'); }} // Force Publish
+                                        onClick={() => { if (onPublish) onPublish(); else onStatusAction(getStatusId('published')); }} // Force Publish
                                         disabled={loading}
                                     >
                                         Aprovar e Publicar
@@ -541,7 +546,7 @@ export default function EditPostModal({
                                                     alert("Por favor, descreva o ajuste necessário antes de enviar.");
                                                     return;
                                                 }
-                                                onStatusAction('rejected', correctionDescription);
+                                                onStatusAction(getStatusId('rejected'), correctionDescription);
                                             }
                                         }}
                                         disabled={loading}
@@ -564,7 +569,7 @@ export default function EditPostModal({
                                     <Button
                                         className="w-full bg-[#7ACAC9] hover:bg-[#68b0af] text-white justify-start"
                                         startIcon={<TimeIcon className="w-5 h-5" />}
-                                        onClick={() => onStatusAction('paused')} // Pausado
+                                        onClick={() => onStatusAction(getStatusId('paused'))} // Pausado
                                         disabled={loading}
                                     >
                                         Pausar envio
@@ -573,7 +578,7 @@ export default function EditPostModal({
                                     <Button
                                         className="w-full bg-[#7ACAC9] hover:bg-[#68b0af] text-white justify-start"
                                         startIcon={<TaskIcon className="w-5 h-5" />}
-                                        onClick={() => { if (onSendWhatsApp) onSendWhatsApp(); else onStatusAction('in_review'); }} // Pendente (Para Revisão)
+                                        onClick={() => { if (onSendWhatsApp) onSendWhatsApp(); else onStatusAction(getStatusId('in_review')); }} // Pendente (Para Revisão)
                                         disabled={loading}
                                     >
                                         Enviar Para Revisão

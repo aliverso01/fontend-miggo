@@ -71,12 +71,23 @@ export interface PostStatus {
 }
 
 export const resolveStatusStyle = (statusValue: string | number | undefined, statuses: PostStatus[]) => {
-    if (statusValue == null) return { label: 'DESCONHECIDO', color: 'bg-gray-100 text-gray-800' };
+    // Padronizar posts sem status (null, undefined, 0, "") para 'draft' (Rascunho)
+    if (!statusValue) {
+        statusValue = 'draft';
+    }
     
-    const statusObj = statuses.find(s => String(s.id) === String(statusValue) || s.name.toLowerCase() === String(statusValue).toLowerCase());
+    let statusObj = statuses.find(s => String(s.id) === String(statusValue) || s.name.toLowerCase() === String(statusValue).toLowerCase());
     
+    // Se ainda assim não achar no array da API (ex: array não carregou ainda ou ID obsoleto), criamos um mockup de rascunho temporário
+    if (!statusObj) {
+        if (statusValue === 'draft' || statusValue === 1 || statusValue === 2) {
+             statusObj = { id: 0, name: 'draft', description: 'Rascunho' };
+        } else {
+             return { label: 'DESCONHECIDO', color: 'bg-gray-100 text-gray-800' };
+        }
+    }
+
     let color = 'bg-gray-100 text-gray-800';
-    if (!statusObj) return { label: 'DESCONHECIDO', color };
 
     const nameLower = statusObj.name.toLowerCase();
     
@@ -1060,7 +1071,7 @@ export default function ContentKanban() {
                                             if (user?.role === 'client' && s.name.toLowerCase() === 'draft') return false;
                                             return true;
                                         })
-                                        .map(s => ({ value: s.name, label: String(s.description || s.name).toUpperCase() }))
+                                        .map(s => ({ value: String(s.id), label: String(s.description || s.name).toUpperCase() }))
                                 ]}
                                 placeholder="Status"
                                 onChange={(val) => setSelectedStatus(val === "" ? "" : val)}
@@ -1120,7 +1131,14 @@ export default function ContentKanban() {
                                 const matchClient = selectedClient === "" || p.client === selectedClient;
                                 
                                 // Let's coerce status to string safely to check, ignoring case
-                                const matchStatus = selectedStatus === "" || String(p.status).toLowerCase() === String(selectedStatus).toLowerCase();
+                                let matchStatus = false;
+                                if (selectedStatus === "") {
+                                    matchStatus = true;
+                                } else {
+                                    const postStatusObj = statuses.find(s => String(s.id) === String(p.status) || s.name.toLowerCase() === String(p.status).toLowerCase());
+                                    // Compara se o ID do status coincide com o select que armazena IDS. (ou default p.status string/id)
+                                    matchStatus = (postStatusObj?.id === Number(selectedStatus)) || (String(p.status).toLowerCase() === String(selectedStatus).toLowerCase());
+                                }
                                 
                                 const matchFormat = selectedFormat === "" || p.post_format === selectedFormat;
 
