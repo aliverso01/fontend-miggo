@@ -145,7 +145,7 @@ export default function ContentKanban() {
         content: "",
         post_date: "",
         post_time: "",
-        status: 2 as string | number, // Default draft
+        status: 1 as string | number, // Default draft
         post_format: "" as number | "",
     });
     // Client selected inside the create modal (independent from the Kanban filter)
@@ -166,7 +166,7 @@ export default function ContentKanban() {
         content: "",
         post_date: "",
         post_time: "",
-        status: 2 as string | number, // Default draft
+        status: 1 as string | number, // Default draft
         post_format: "" as number | "",
         template_link: "",  // populated from calendarRules when opening a post from the calendar
         template_page: "" as number | string,
@@ -308,7 +308,7 @@ export default function ContentKanban() {
             const post = enrichedPosts.find((p: Post) => p.id === Number(editPostId));
             if (post) {
                 // Add validation for status and format to avoid 0/null issues
-                if (post.status === undefined) post.status = 'draft'; // Default to draft if missing
+                if (post.status === undefined) post.status = 1; // Default to draft if missing
 
                 // Small timeout to ensure hydration/render cycle matches (solves dashboard nav issue)
                 setTimeout(() => {
@@ -451,7 +451,7 @@ export default function ContentKanban() {
                             content: "Conteúdo gerado via calendário",
                             post_date: dateStr,
                             post_time: rule.time,
-                            status: 2, // Default to draft
+                            status: 1, // Default to draft
                             post_format: null,              // sem formato definido — usuário escolhe ao publicar
                             suggested_formats: rule.formats, // todos os formatos sugeridos
                             calendar_id: rule.id,
@@ -731,7 +731,7 @@ export default function ContentKanban() {
             await fetchMedias();
             await fetchPostMedias();
             closeModal();
-            setFormData({ subject: "", title: "", content: "", post_date: "", post_time: "", status: 2, post_format: "" });
+            setFormData({ subject: "", title: "", content: "", post_date: "", post_time: "", status: 1, post_format: "" });
             setFormClientId("");
             setMediaFiles([]); // Reset file input
 
@@ -778,7 +778,7 @@ export default function ContentKanban() {
             content: post.content,
             post_date: post.post_date,
             post_time: post.post_time,
-            status: post.status || 2,
+            status: post.status || 1,
             post_format: post.post_format || "" as any,
             template_link: post.template_link || "",
             template_page: post.template_page || "",
@@ -835,7 +835,7 @@ export default function ContentKanban() {
         // and user didn't explicitly change status to something else,
         // revert to Draft (2).
         if (String(currentPost?.status).toLowerCase() === 'scheduled' && String(data.status).toLowerCase() === 'scheduled') {
-            data.status = 2;
+            data.status = 1;
         }
 
         await performUpdatePost(data);
