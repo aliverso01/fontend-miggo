@@ -1120,7 +1120,7 @@ export default function ContentKanban() {
 
                 <div className="flex flex-1 gap-6 overflow-x-auto pb-4">
                     {user?.role === 'client' ? (
-                        <div className="w-full flex flex-col gap-4 overflow-y-auto pr-2 custom-scrollbar">
+                        <div className="flex-1 w-full min-w-full flex flex-col gap-4 overflow-y-auto pr-2 custom-scrollbar">
                             {enrichedPosts.filter((p: Post) => {
                                 if (String(p.status).toLowerCase() === 'draft') return false;
 

@@ -95,7 +95,7 @@ export default function MediaLibrary() {
         const fetchMedia = async () => {
             setLoading(true);
             try {
-                const response = await fetch(`/api/v1/media/list/?user_id=${selectedClientUserId}`, {
+                const response = await fetch(`/api/v1/media/list/?user_id=${selectedClientUserId}&unlinked=true`, {
                     headers: { Authorization: API_KEY },
                 });
                 if (response.ok) {
@@ -187,7 +187,7 @@ export default function MediaLibrary() {
             setUploadSuccess(`${successCount} imagem(ns) enviada(s) com sucesso!`);
             // Refresh the media list
             if (selectedClientUserId) {
-                const response = await fetch(`/api/v1/media/list/?user_id=${selectedClientUserId}`, {
+                const response = await fetch(`/api/v1/media/list/?user_id=${selectedClientUserId}&unlinked=true`, {
                     headers: { Authorization: API_KEY },
                 });
                 if (response.ok) setMediaList(await response.json());

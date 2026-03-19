@@ -56,7 +56,7 @@ export default function PostCardClient({ post, formats, statuses, clients, media
     const renderMediaContent = () => {
         if (!displayMedia) {
             return (
-                <div className="w-[200px] h-full bg-gray-50 dark:bg-gray-800 flex items-center justify-center border-r border-gray-100 dark:border-gray-700 shrink-0">
+                <div className="w-full h-full bg-gray-50 dark:bg-gray-800 flex items-center justify-center shrink-0">
                     <span className="text-sm text-gray-400">Sem mídia</span>
                 </div>
             );
@@ -67,7 +67,7 @@ export default function PostCardClient({ post, formats, statuses, clients, media
         switch (displayMediaType) {
             case 'video':
                 return (
-                    <div className="relative w-[200px] h-full bg-black shrink-0 flex items-center justify-center group border-r border-gray-100 dark:border-gray-700">
+                    <div className="relative w-full h-full bg-black shrink-0 flex items-center justify-center group overflow-hidden">
                         <video src={url} className="w-full h-full object-cover opacity-80" />
                         <div className="absolute inset-0 flex items-center justify-center">
                             <div className="w-10 h-10 rounded-full bg-white/20 backdrop-blur-sm flex items-center justify-center">
@@ -80,7 +80,7 @@ export default function PostCardClient({ post, formats, statuses, clients, media
                 );
             case 'pdf':
                 return (
-                    <div className="w-[200px] h-full bg-red-50 dark:bg-white/5 border-r border-red-100 dark:border-red-500/20 flex flex-col items-center justify-center p-4 shrink-0">
+                    <div className="w-full h-full bg-red-50 dark:bg-white/5 flex flex-col items-center justify-center p-4 shrink-0">
                         <svg xmlns="http://www.w3.org/2000/svg" className="h-10 w-10 text-red-500 mb-2" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                             <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
                             <polyline points="14 2 14 8 20 8"></polyline>
@@ -92,7 +92,7 @@ export default function PostCardClient({ post, formats, statuses, clients, media
                 );
             default: // image
                 return (
-                    <div className="w-[200px] h-full bg-gray-100 shrink-0 border-r border-gray-100 dark:border-gray-700">
+                    <div className="w-full h-full bg-gray-100 shrink-0 overflow-hidden">
                         <img src={url} alt="Media" className="w-full h-full object-cover" />
                     </div>
                 );
@@ -103,11 +103,11 @@ export default function PostCardClient({ post, formats, statuses, clients, media
 
     return (
         <div 
-            className="flex flex-col sm:flex-row w-full bg-white border border-gray-200 rounded-xl dark:bg-gray-800 dark:border-gray-700 shadow-sm overflow-hidden mb-4 hover:shadow-md transition-shadow cursor-pointer"
+            className="flex flex-col sm:flex-row w-full bg-white border border-gray-200 rounded-xl dark:bg-gray-800 dark:border-gray-700 shadow-sm overflow-hidden mb-4 hover:shadow-md transition-shadow cursor-pointer min-h-[220px]"
             onClick={() => onEdit(post)}
         >
             {/* Visual Media */}
-            <div className="h-48 sm:h-auto sm:w-[250px] shrink-0">
+            <div className="h-56 sm:h-auto sm:w-[280px] shrink-0 border-b sm:border-b-0 sm:border-r border-gray-200 dark:border-gray-700 overflow-hidden bg-gray-50 dark:bg-gray-800">
                 {renderMediaContent()}
             </div>
 
